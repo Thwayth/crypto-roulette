@@ -1,0 +1,294 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+
+    margin: 0;
+
+    font-family:
+        Arial,
+        sans-serif;
+
+    background: #080b12;
+
+    color: white;
+}
+
+
+.app {
+
+    min-height: 100vh;
+
+    padding: 30px 20px;
+
+    text-align: center;
+
+    max-width: 500px;
+
+    margin: auto;
+}
+
+
+/* Заголовок */
+
+h1 {
+
+    font-size: 24px;
+
+    margin-bottom: 8px;
+}
+
+
+.subtitle {
+
+    color: #8992a5;
+
+    margin-bottom: 40px;
+}
+
+
+/* Рулетка */
+
+.wheel-wrapper {
+
+    position: relative;
+
+    width: 320px;
+
+    height: 320px;
+
+    margin:
+        0 auto
+        40px;
+}
+
+
+.pointer {
+
+    position: absolute;
+
+    z-index: 10;
+
+    top: -20px;
+
+    left: 50%;
+
+    transform:
+        translateX(-50%);
+
+    font-size: 35px;
+}
+
+
+.wheel {
+
+    width: 320px;
+
+    height: 320px;
+
+    border-radius: 50%;
+
+    position: relative;
+
+    background:
+        conic-gradient(
+            #2878ff 0deg 60deg,
+            #ff4757 60deg 120deg,
+            #8e44ff 120deg 180deg,
+            #20bf6b 180deg 240deg,
+            #ff9f43 240deg 300deg,
+            #00a8ff 300deg 360deg
+        );
+
+    border: 8px solid #202635;
+
+    box-shadow:
+        0 20px 60px
+        rgba(0,0,0,.5);
+
+    transition:
+        transform 5s
+        cubic-bezier(
+            .12,
+            .8,
+            .2,
+            1
+        );
+}
+
+
+/* Надписи */
+
+.label {
+
+    position: absolute;
+
+    width: 100px;
+
+    text-align: center;
+
+    font-weight: bold;
+
+    font-size: 15px;
+
+    z-index: 2;
+}
+
+
+.label1 {
+
+    top: 35px;
+
+    left: 110px;
+}
+
+
+.label2 {
+
+    top: 105px;
+
+    right: 20px;
+}
+
+
+.label3 {
+
+    bottom: 45px;
+
+    right: 55px;
+}
+
+
+.label4 {
+
+    bottom: 35px;
+
+    left: 110px;
+}
+
+
+.label5 {
+
+    bottom: 105px;
+
+    left: 20px;
+}
+
+
+.label6 {
+
+    top: 105px;
+
+    left: 20px;
+}
+
+
+/* Центр */
+
+.wheel-center {
+
+    position: absolute;
+
+    width: 85px;
+
+    height: 85px;
+
+    top: 50%;
+
+    left: 50%;
+
+    transform:
+        translate(
+            -50%,
+            -50%
+        );
+
+    border-radius: 50%;
+
+    background: #080b12;
+
+    border: 5px solid #30384b;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 12px;
+
+    font-weight: bold;
+}
+
+
+/* Кнопка */
+
+.spin-button {
+
+    width: 320px;
+
+    max-width: 100%;
+
+    padding: 17px;
+
+    border: none;
+
+    border-radius: 15px;
+
+    background: white;
+
+    color: #080b12;
+
+    font-size: 17px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+
+.spin-button:disabled {
+
+    opacity: .5;
+}
+
+
+/* Результат */
+
+.result {
+
+    margin-top: 30px;
+
+    padding: 25px;
+
+    border-radius: 20px;
+
+    background: #131925;
+
+    border: 1px solid #292f40;
+}
+
+
+.hidden {
+
+    display: none;
+}
+
+
+.result-title {
+
+    color: #8992a5;
+
+    font-size: 12px;
+}
+
+
+.result-value {
+
+    margin-top: 12px;
+
+    font-size: 28px;
+
+    font-weight: bold;
+}

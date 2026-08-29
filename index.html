@@ -1,0 +1,106 @@
+<html lang="ru">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Crypto Roulette</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<div class="app">
+
+    <h1>🎰 CRYPTO ROULETTE</h1>
+
+    <p class="subtitle">
+        Что тебе выпадет сегодня?
+    </p>
+
+
+    <div class="wheel-wrapper">
+
+        <div class="pointer">
+            ▼
+        </div>
+
+
+        <div id="wheel" class="wheel">
+
+            <div class="label label1">
+                🐂<br>BULL
+            </div>
+
+            <div class="label label2">
+                🐻<br>BEAR
+            </div>
+
+            <div class="label label3">
+                🐋<br>WHALE
+            </div>
+
+            <div class="label label4">
+                💎<br>GEM
+            </div>
+
+            <div class="label label5">
+                🔥<br>DEGEN
+            </div>
+
+            <div class="label label6">
+                👀<br>WATCH
+            </div>
+
+
+            <div class="wheel-center">
+                CRYPTO
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <button
+        id="spinButton"
+        class="spin-button"
+    >
+        🎰 КРУТИТЬ
+    </button>
+
+
+    <div
+        id="result"
+        class="result hidden"
+    >
+
+        <div class="result-title">
+            ТЕБЕ ВЫПАЛО
+        </div>
+
+        <div
+            id="resultValue"
+            class="result-value"
+        >
+        </div>
+
+    </div>
+
+</div>
+
+
+<script src="app.js"></script>
+
+</body>
+
+</html>
