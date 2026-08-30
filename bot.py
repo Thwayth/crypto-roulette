@@ -1,124 +1,58 @@
-import os
 import asyncio
+import os
 
-from aiogram import Bot, Dispatcher, F
+from aiohttp import web
+from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart
-from aiogram.types import (
-    Message,
-    LabeledPrice,
-    PreCheckoutQuery,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    WebAppInfo,
-)
+from aiogram.types import Message
 
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-WEB_APP_URL = "https://crypto-roulette-henna.vercel.app/"
-
-STAR_PRICE = 100
-
-
 if not BOT_TOKEN:
-    raise RuntimeError("BOT_TOKEN is not configured")
+    raise RuntimeError("BOT_TOKEN не найден в Environment Variables")
 
 
 bot = Bot(token=BOT_TOKEN)
-
 dp = Dispatcher()
-
-
-# Количество оплаченных прокруток для каждого пользователя
-paid_spins = {}
 
 
 @dp.message(CommandStart())
 async def start(message: Message):
-
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="🎰 ОТКРЫТЬ РУЛЕТКУ",
-                    web_app=WebAppInfo(url=WEB_APP_URL)
-                )
-            ]
-        ]
-    )
-
     await message.answer(
         "🎰 CRYPTO ROULETTE\n\n"
         "Добро пожаловать!\n\n"
-        "🎁 Первая прокрутка — бесплатно.\n"
-        "⭐ Следующая прокрутка — 100 Stars.",
-        reply_markup=keyboard
+        "Нажми /roulette, чтобы открыть рулетку."
     )
 
 
-@dp.message(F.text == "/roulette")
-async def roulette(message: Message):
-
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="🎰 ОТКРЫТЬ РУЛЕТКУ",
-                    web_app=WebAppInfo(url=WEB_APP_URL)
-                )
-            ]
-        ]
-    )
-
-    await message.answer(
-        "🎰 CRYPTO ROULETTE",
-        reply_markup=keyboard
-    )
+async def health(request):
+    return web.Response(text="OK")
 
 
-@dp.message(F.text == "/pay")
-async def pay(message: Message):
+async def start_web_server():
+    app = web.Application()
 
-    prices = [
-        LabeledPrice(
-            label="1 дополнительная прокрутка",
-            amount=STAR_PRICE
-        )
-    ]
+    app.router.add_get("/", health)
+    app.router.add_get("/health", health)
 
-    await bot.send_invoice(
-        chat_id=message.chat.id,
-        title="Дополнительная прокрутка",
-        description="1 прокрутка CRYPTO ROULETTE",
-        payload=f"spin_{message.from_user.id}",
-        currency="XTR",
-        prices=prices
-    )
+    port = int(os.getenv("PORT", 10000))
 
+    runner = web.AppRunner(app)
+    await runner.setup()
 
-@dp.pre_checkout_query()
-async def pre_checkout(query: PreCheckoutQuery):
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
 
-    await query.answer(ok=True)
-
-
-@dp.message(F.successful_payment)
-async def successful_payment(message: Message):
-
-    user_id = message.from_user.id
-
-    paid_spins[user_id] = paid_spins.get(user_id, 0) + 1
-
-    await message.answer(
-        "⭐ Оплата получена!\n\n"
-        "Тебе добавлена 1 дополнительная прокрутка.\n\n"
-        "Открой рулетку и крути! 🎰"
-    )
+    print(f"🌐 Web server запущен на порту {port}")
 
 
 async def main():
+    print("🤖 Бот запускается...")
 
-    print("🤖 CRYPTO ROULETTE BOT STARTED")
+    await start_web_server()
+
+    print("🤖 Telegram polling запущен!")
 
     await dp.start_polling(bot)
 
