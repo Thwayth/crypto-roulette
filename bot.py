@@ -1,4 +1,3 @@
-```python
 import asyncio
 import os
 import sqlite3
