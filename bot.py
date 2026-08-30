@@ -12,7 +12,7 @@ from aiogram.types import Message
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 if not BOT_TOKEN:
-    raise RuntimeError("BOT_TOKEN не найден")
+    raise RuntimeError("BOT_TOKEN не найден в Environment Variables")
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -25,7 +25,7 @@ dp = Dispatcher()
 async def start(message: Message):
     await message.answer(
         "🎰 CRYPTO ROULETTE\n\n"
-        "Открой Mini App через кнопку меню бота."
+        "Открой рулетку через Mini App."
     )
 
 
@@ -33,11 +33,11 @@ async def index(request):
     return web.FileResponse(BASE_DIR / "index.html")
 
 
-async def app_js(request):
+async def javascript(request):
     return web.FileResponse(BASE_DIR / "app.js")
 
 
-async def style_css(request):
+async def css(request):
     return web.FileResponse(BASE_DIR / "style.css")
 
 
@@ -50,8 +50,8 @@ async def start_web_server():
 
     app.router.add_get("/", index)
     app.router.add_get("/index.html", index)
-    app.router.add_get("/app.js", app_js)
-    app.router.add_get("/style.css", style_css)
+    app.router.add_get("/app.js", javascript)
+    app.router.add_get("/style.css", css)
     app.router.add_get("/health", health)
 
     port = int(os.getenv("PORT", "10000"))
