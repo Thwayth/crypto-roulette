@@ -1,50 +1,56 @@
 ```javascript
-const tg = window.Telegram && window.Telegram.WebApp
-    ? window.Telegram.WebApp
-    : null;
+"use strict";
+
+console.log("CRYPTO ROULETTE: app.js loaded");
+
+const tg = window.Telegram?.WebApp || null;
 
 if (tg) {
     tg.ready();
     tg.expand();
+
+    try {
+        tg.setHeaderColor("#050608");
+        tg.setBackgroundColor("#050608");
+    } catch (e) {
+        console.log(e);
+    }
 }
+
 
 const prizes = [
     {
-        id: "jackpot",
         icon: "🏆",
         name: "$1,000",
         description: "Заглавный приз",
         chance: 0.02
     },
     {
-        id: "vip",
         icon: "💎",
         name: "VIP",
         description: "VIP-доступ",
         chance: 4.98
     },
     {
-        id: "marathon",
         icon: "🔥",
         name: "МАРАФОН",
         description: "Торговый марафон",
         chance: 10
     },
     {
-        id: "signal",
         icon: "📈",
         name: "СИГНАЛ НА 300%",
         description: "Торговый сигнал",
         chance: 25
     },
     {
-        id: "training",
         icon: "🎓",
         name: "ОБУЧЕНИЕ",
         description: "Полный доступ",
         chance: 60
     }
 ];
+
 
 const homeScreen = document.getElementById("homeScreen");
 const rouletteScreen = document.getElementById("rouletteScreen");
@@ -66,10 +72,13 @@ const resultDescription = document.getElementById("resultDescription");
 
 const claimButton = document.getElementById("claimButton");
 
+
 let spinning = false;
 let rotation = 0;
 
+
 function showScreen(screen) {
+
     homeScreen.classList.remove("active");
     rouletteScreen.classList.remove("active");
     resultScreen.classList.remove("active");
@@ -77,52 +86,50 @@ function showScreen(screen) {
     screen.classList.add("active");
 }
 
+
 function haptic() {
+
     try {
-        if (tg && tg.HapticFeedback) {
+
+        if (tg?.HapticFeedback) {
             tg.HapticFeedback.impactOccurred("medium");
         }
+
     } catch (e) {}
+
 }
 
-function randomPrize() {
-    let r = Math.random() * 100;
+
+function getPrize() {
+
+    const random = Math.random() * 100;
+
     let total = 0;
 
     for (const prize of prizes) {
+
         total += prize.chance;
 
-        if (r < total) {
+        if (random < total) {
             return prize;
         }
+
     }
 
     return prizes[prizes.length - 1];
 }
 
-function createWheelLabels() {
-    const labels = [
-        ["one", "🏆<br>$1,000"],
-        ["two", "💎<br>VIP"],
-        ["three", "🔥<br>МАРАФОН"],
-        ["four", "📈<br>СИГНАЛ<br>300%"],
-        ["five", "🎓<br>ОБУЧЕНИЕ"]
-    ];
 
-    wheel.querySelectorAll(".wheel-label").forEach(x => x.remove());
+function spin() {
 
-    labels.forEach(([className, text]) => {
-        const el = document.createElement("div");
-        el.className = "wheel-label " + className;
-        el.innerHTML = text;
-        wheel.appendChild(el);
-    });
-}
+    console.log("SPIN BUTTON CLICKED");
 
-function startSpin() {
-    if (spinning) return;
+    if (spinning) {
+        return;
+    }
 
     spinning = true;
+
     haptic();
 
     showScreen(rouletteScreen);
@@ -131,15 +138,19 @@ function startSpin() {
 
     progressBar.style.width = "0%";
 
-    const prize = randomPrize();
+    const prize = getPrize();
 
-    const index = prizes.findIndex(p => p.id === prize.id);
+    const index = prizes.indexOf(prize);
 
     const sector = 360 / prizes.length;
 
-    const target = 360 - (index * sector + sector / 2);
+    const target =
+        360 -
+        (index * sector + sector / 2);
 
-    const extra = 360 * (5 + Math.floor(Math.random() * 3));
+    const extra =
+        360 *
+        (5 + Math.floor(Math.random() * 3));
 
     rotation += extra + target;
 
@@ -149,78 +160,163 @@ function startSpin() {
     wheel.style.transform =
         "rotate(" + rotation + "deg)";
 
-    const started = performance.now();
+
+    const start = performance.now();
+
 
     function progress(now) {
-        const value = Math.min(
-            (now - started) / 5500,
-            1
-        );
+
+        const percent =
+            Math.min(
+                (now - start) / 5500,
+                1
+            );
 
         progressBar.style.width =
-            (value * 100) + "%";
+            (percent * 100) + "%";
 
-        if (value < 1) {
+        if (percent < 1) {
             requestAnimationFrame(progress);
         }
+
     }
+
 
     requestAnimationFrame(progress);
 
+
     setTimeout(() => {
-        showResult(prize);
+
+        spinning = false;
+
+        resultIcon.textContent =
+            prize.icon;
+
+        resultName.textContent =
+            prize.name;
+
+        resultDescription.textContent =
+            prize.description;
+
+        showScreen(resultScreen);
+
+        haptic();
+
     }, 5700);
+
 }
 
-function showResult(prize) {
-    spinning = false;
-
-    resultIcon.textContent = prize.icon;
-    resultName.textContent = prize.name;
-    resultDescription.textContent = prize.description;
-
-    showScreen(resultScreen);
-
-    haptic();
-}
 
 function paidSpin() {
-    if (spinning) return;
 
-    if (!tg || !tg.showAlert) {
-        alert("Нужно открыть Mini App внутри Telegram.");
+    console.log("PAID SPIN BUTTON CLICKED");
+
+    if (spinning) {
         return;
     }
 
-    tg.showAlert(
-        "⭐ Следующая прокрутка стоит 100 Stars.\n\nОплата Stars будет подключена следующим шагом."
-    );
+    if (tg?.showAlert) {
+
+        tg.showAlert(
+            "⭐ Следующая прокрутка стоит 100 Stars."
+        );
+
+    } else {
+
+        alert(
+            "⭐ Следующая прокрутка стоит 100 Stars."
+        );
+
+    }
+
 }
 
-spinButton.onclick = startSpin;
 
-repeatHomeButton.onclick = paidSpin;
+spinButton.addEventListener(
+    "click",
+    spin
+);
 
-spinAgainButton.onclick = paidSpin;
 
-repeatResultButton.onclick = paidSpin;
+repeatHomeButton.addEventListener(
+    "click",
+    paidSpin
+);
 
-backButton.onclick = function () {
-    if (!spinning) {
-        showScreen(homeScreen);
+
+spinAgainButton.addEventListener(
+    "click",
+    paidSpin
+);
+
+
+repeatResultButton.addEventListener(
+    "click",
+    paidSpin
+);
+
+
+backButton.addEventListener(
+    "click",
+    function () {
+
+        if (!spinning) {
+            showScreen(homeScreen);
+        }
+
     }
-};
+);
 
-claimButton.onclick = function () {
-    if (tg && tg.openTelegramLink) {
-        tg.openTelegramLink("https://t.me/Andrey_AItrade");
-    } else {
-        window.open("https://t.me/Andrey_AItrade", "_blank");
+
+claimButton.addEventListener(
+    "click",
+    function () {
+
+        const url =
+            "https://t.me/Andrey_AItrade";
+
+        if (tg?.openTelegramLink) {
+            tg.openTelegramLink(url);
+        } else {
+            window.open(url, "_blank");
+        }
+
     }
-};
+);
 
-createWheelLabels();
+
+createWheel();
+
+
+function createWheel() {
+
+    const labels = [
+        ["one", "🏆<br>$1,000"],
+        ["two", "💎<br>VIP"],
+        ["three", "🔥<br>МАРАФОН"],
+        ["four", "📈<br>СИГНАЛ<br>300%"],
+        ["five", "🎓<br>ОБУЧЕНИЕ"]
+    ];
+
+    labels.forEach(item => {
+
+        const element =
+            document.createElement("div");
+
+        element.className =
+            "wheel-label " + item[0];
+
+        element.innerHTML =
+            item[1];
+
+        wheel.appendChild(element);
+
+    });
+
+}
+
+
 showScreen(homeScreen);
 
-console.log("CRYPTO ROULETTE JS OK");
+console.log("CRYPTO ROULETTE: READY");
 ```
