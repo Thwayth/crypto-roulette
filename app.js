@@ -8,7 +8,7 @@ if (tg) {
         tg.setHeaderColor("#050608");
         tg.setBackgroundColor("#050608");
     } catch (e) {
-        console.log(e);
+        console.log("Telegram UI:", e);
     }
 }
 
@@ -60,50 +60,25 @@ const prizes = [
    ELEMENTS
 ========================================== */
 
-const homeScreen =
-    document.getElementById("homeScreen");
+const homeScreen = document.getElementById("homeScreen");
+const rouletteScreen = document.getElementById("rouletteScreen");
+const resultScreen = document.getElementById("resultScreen");
 
-const rouletteScreen =
-    document.getElementById("rouletteScreen");
+const spinButton = document.getElementById("spinButton");
+const repeatHomeButton = document.getElementById("repeatHomeButton");
+const spinAgainButton = document.getElementById("spinAgainButton");
+const repeatResultButton = document.getElementById("repeatResultButton");
+const backButton = document.getElementById("backButton");
 
-const resultScreen =
-    document.getElementById("resultScreen");
+const wheel = document.getElementById("wheel");
+const spinStatus = document.getElementById("spinStatus");
+const progressBar = document.getElementById("progressBar");
 
-const spinButton =
-    document.getElementById("spinButton");
+const resultIcon = document.getElementById("resultIcon");
+const resultName = document.getElementById("resultName");
+const resultDescription = document.getElementById("resultDescription");
 
-const repeatHomeButton =
-    document.getElementById("repeatHomeButton");
-
-const spinAgainButton =
-    document.getElementById("spinAgainButton");
-
-const repeatResultButton =
-    document.getElementById("repeatResultButton");
-
-const backButton =
-    document.getElementById("backButton");
-
-const wheel =
-    document.getElementById("wheel");
-
-const spinStatus =
-    document.getElementById("spinStatus");
-
-const progressBar =
-    document.getElementById("progressBar");
-
-const resultIcon =
-    document.getElementById("resultIcon");
-
-const resultName =
-    document.getElementById("resultName");
-
-const resultDescription =
-    document.getElementById("resultDescription");
-
-const claimButton =
-    document.getElementById("claimButton");
+const claimButton = document.getElementById("claimButton");
 
 
 /* ==========================================
@@ -115,15 +90,28 @@ let currentRotation = 0;
 
 
 /* ==========================================
+   TELEGRAM USER
+========================================== */
+
+function getTelegramUserId() {
+
+    if (!tg) {
+        return null;
+    }
+
+    return tg.initDataUnsafe?.user?.id || null;
+}
+
+
+/* ==========================================
    SCREEN
 ========================================== */
 
 function showScreen(screen) {
-    document
-        .querySelectorAll(".screen")
-        .forEach(element => {
-            element.classList.remove("active");
-        });
+
+    document.querySelectorAll(".screen").forEach((s) => {
+        s.classList.remove("active");
+    });
 
     if (screen) {
         screen.classList.add("active");
@@ -138,20 +126,21 @@ function showScreen(screen) {
 ========================================== */
 
 function haptic(type = "light") {
+
     try {
+
         if (!tg?.HapticFeedback) {
             return;
         }
 
         if (type === "success") {
-            tg.HapticFeedback.notificationOccurred(
-                "success"
-            );
+            tg.HapticFeedback.notificationOccurred("success");
+        } else if (type === "error") {
+            tg.HapticFeedback.notificationOccurred("error");
         } else {
-            tg.HapticFeedback.impactOccurred(
-                "light"
-            );
+            tg.HapticFeedback.impactOccurred("light");
         }
+
     } catch (e) {
         console.log(e);
     }
@@ -163,12 +152,13 @@ function haptic(type = "light") {
 ========================================== */
 
 function getRandomPrize() {
-    const random =
-        Math.random() * 100;
+
+    const random = Math.random() * 100;
 
     let total = 0;
 
     for (const prize of prizes) {
+
         total += prize.chance;
 
         if (random < total) {
@@ -176,9 +166,7 @@ function getRandomPrize() {
         }
     }
 
-    return prizes[
-        prizes.length - 1
-    ];
+    return prizes[prizes.length - 1];
 }
 
 
@@ -187,56 +175,33 @@ function getRandomPrize() {
 ========================================== */
 
 function createWheelLabels() {
+
     if (!wheel) {
-        console.error("❌ #wheel не найден");
         return;
     }
 
-    wheel
-        .querySelectorAll(".wheel-label")
-        .forEach(element => {
-            element.remove();
-        });
+    wheel.querySelectorAll(".wheel-label").forEach((x) => {
+        x.remove();
+    });
 
     const labels = [
-        [
-            "one",
-            "🏆<br>$1,000"
-        ],
-        [
-            "two",
-            "💎<br>VIP"
-        ],
-        [
-            "three",
-            "🔥<br>МАРАФОН"
-        ],
-        [
-            "four",
-            "📈<br>СИГНАЛ<br>300%"
-        ],
-        [
-            "five",
-            "🎓<br>ОБУЧЕНИЕ"
-        ]
+        ["one", "🏆<br>$1,000"],
+        ["two", "💎<br>VIP"],
+        ["three", "🔥<br>МАРАФОН"],
+        ["four", "📈<br>СИГНАЛ<br>300%"],
+        ["five", "🎓<br>ОБУЧЕНИЕ"]
     ];
 
-    labels.forEach(
-        ([className, text]) => {
-            const element =
-                document.createElement("div");
+    labels.forEach(([className, text]) => {
 
-            element.className =
-                `wheel-label ${className}`;
+        const el = document.createElement("div");
 
-            element.innerHTML =
-                text;
+        el.className = `wheel-label ${className}`;
 
-            wheel.appendChild(
-                element
-            );
-        }
-    );
+        el.innerHTML = text;
+
+        wheel.appendChild(el);
+    });
 }
 
 
@@ -245,87 +210,19 @@ function createWheelLabels() {
 ========================================== */
 
 function setButtonsDisabled(value) {
+
     [
         spinButton,
         repeatHomeButton,
         spinAgainButton,
         repeatResultButton
-    ].forEach(button => {
+    ].forEach((button) => {
+
         if (button) {
             button.disabled = value;
         }
-    });
-}
-
-
-/* ==========================================
-   ANIMATION
-========================================== */
-
-function spinWheel(prize) {
-    if (!wheel) {
-        console.error("❌ Wheel не найден");
-        return;
-    }
-
-    const index =
-        prizes.findIndex(
-            item => item.id === prize.id
-        );
-
-    const sector =
-        360 / prizes.length;
-
-    const sectorCenter =
-        index * sector +
-        sector / 2;
-
-    const target =
-        360 - sectorCenter;
-
-    const randomOffset =
-        (Math.random() - 0.5) *
-        sector *
-        0.5;
-
-    const extraRotation =
-        360 *
-        (
-            6 +
-            Math.floor(
-                Math.random() * 2
-            )
-        );
-
-    const startRotation =
-        currentRotation;
-
-    const finalRotation =
-        startRotation +
-        extraRotation +
-        target +
-        randomOffset;
-
-    wheel.style.transition =
-        "none";
-
-    wheel.style.transform =
-        `rotate(${startRotation}deg)`;
-
-    void wheel.offsetWidth;
-
-    requestAnimationFrame(() => {
-
-        wheel.style.transition =
-            "transform 5.5s cubic-bezier(0.12, 0.72, 0.18, 1)";
-
-        wheel.style.transform =
-            `rotate(${finalRotation}deg)`;
 
     });
-
-    currentRotation =
-        finalRotation;
 }
 
 
@@ -333,51 +230,149 @@ function spinWheel(prize) {
    FREE SPIN
 ========================================== */
 
-function spinRoulette() {
-    if (isSpinning) {
-        return;
+async function useFreeSpin() {
+
+    const userId = getTelegramUserId();
+
+    if (!userId) {
+
+        tg?.showAlert?.(
+            "❌ Не удалось определить Telegram пользователя."
+        );
+
+        return false;
     }
+
+    try {
+
+        const response = await fetch("/use-free-spin", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                user_id: userId
+            })
+        });
+
+
+        const data = await response.json();
+
+
+        if (!response.ok || !data.ok) {
+
+            tg?.showAlert?.(
+                data.error ||
+                "❌ Бесплатная прокрутка уже использована."
+            );
+
+            return false;
+        }
+
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "FREE SPIN ERROR:",
+            error
+        );
+
+        tg?.showAlert?.(
+            "❌ Сервер временно недоступен."
+        );
+
+        return false;
+    }
+}
+
+
+/* ==========================================
+   START WHEEL
+========================================== */
+
+function startWheelSpin(prize) {
 
     if (!wheel) {
-        alert("Ошибка: элемент рулетки #wheel не найден.");
         return;
     }
 
-    isSpinning = true;
-
-    setButtonsDisabled(true);
-
-    haptic();
-
-    showScreen(
-        rouletteScreen
+    const index = prizes.findIndex(
+        (item) => item.id === prize.id
     );
 
-    if (spinStatus) {
-        spinStatus.textContent =
-            "РУЛЕТКА КРУТИТСЯ...";
-    }
+    const sector = 360 / prizes.length;
+
+    const sectorCenter =
+        index * sector + sector / 2;
+
+    const target =
+        360 - sectorCenter;
+
+    const extraRotations =
+        360 * (
+            5 +
+            Math.floor(Math.random() * 3)
+        );
+
+    const randomOffset =
+        (Math.random() - 0.5) *
+        (sector * 0.35);
+
+
+    let finalRotation =
+        currentRotation +
+        extraRotations +
+        target +
+        randomOffset;
+
+
+    wheel.style.transition = "none";
+
+    wheel.style.transform =
+        `rotate(${currentRotation}deg)`;
+
+    void wheel.offsetWidth;
+
+
+    wheel.style.transition =
+        "transform 5.5s cubic-bezier(0.12, 0.72, 0.18, 1)";
+
+    wheel.style.willChange =
+        "transform";
+
+
+    wheel.style.transform =
+        `rotate(${finalRotation}deg)`;
+
+
+    currentRotation =
+        finalRotation;
+
 
     if (progressBar) {
-        progressBar.style.transition =
-            "none";
 
-        progressBar.style.width =
-            "0%";
+        progressBar.style.width = "0%";
 
-        void progressBar.offsetWidth;
+        setTimeout(() => {
 
-        progressBar.style.transition =
-            "width 5.5s linear";
+            progressBar.style.width = "100%";
 
-        progressBar.style.width =
-            "100%";
+        }, 50);
     }
 
-    const prize =
-        getRandomPrize();
 
-    spinWheel(prize);
+    if (spinStatus) {
+
+        spinStatus.textContent =
+            "РУЛЕТКА КРУТИТСЯ...";
+
+    }
+
 
     setTimeout(() => {
 
@@ -388,10 +383,63 @@ function spinRoulette() {
 
 
 /* ==========================================
+   FREE SPIN
+========================================== */
+
+async function spinRoulette() {
+
+    if (isSpinning) {
+        return;
+    }
+
+
+    if (!getTelegramUserId()) {
+
+        tg?.showAlert?.(
+            "Открой Mini App внутри Telegram."
+        );
+
+        return;
+    }
+
+
+    /*
+        Сначала сервер проверяет,
+        что бесплатная попытка ещё есть.
+    */
+
+    const allowed =
+        await useFreeSpin();
+
+
+    if (!allowed) {
+        return;
+    }
+
+
+    isSpinning = true;
+
+    setButtonsDisabled(true);
+
+    haptic("light");
+
+    showScreen(rouletteScreen);
+
+
+    const prize =
+        getRandomPrize();
+
+
+    startWheelSpin(prize);
+}
+
+
+/* ==========================================
    RESULT
 ========================================== */
 
 function showResult(prize) {
+
     isSpinning = false;
 
     if (resultIcon) {
@@ -409,13 +457,22 @@ function showResult(prize) {
             prize.description;
     }
 
+
     setButtonsDisabled(false);
 
     haptic("success");
 
-    showScreen(
-        resultScreen
-    );
+    showScreen(resultScreen);
+
+
+    setTimeout(() => {
+
+        if (wheel) {
+            wheel.style.willChange =
+                "auto";
+        }
+
+    }, 500);
 }
 
 
@@ -424,83 +481,152 @@ function showResult(prize) {
 ========================================== */
 
 async function payStars() {
+
     if (isSpinning) {
         return;
     }
 
-    if (!tg) {
-        alert(
+
+    const userId =
+        getTelegramUserId();
+
+
+    if (!userId) {
+
+        tg?.showAlert?.(
             "Открой Mini App внутри Telegram."
         );
+
         return;
     }
 
+
+    if (!tg?.openInvoice) {
+
+        tg?.showAlert?.(
+            "❌ Telegram Payments недоступен."
+        );
+
+        return;
+    }
+
+
     try {
-        haptic();
+
+        haptic("light");
+
 
         const response =
             await fetch(
                 "/create-invoice",
                 {
                     method: "POST",
+
                     headers: {
                         "Content-Type":
                             "application/json"
                     },
+
                     body: JSON.stringify({
-                        user_id:
-                            tg.initDataUnsafe
-                                ?.user
-                                ?.id || ""
+                        user_id: userId
                     })
                 }
             );
 
+
         const data =
             await response.json();
 
+
+        console.log(
+            "INVOICE RESPONSE:",
+            data
+        );
+
+
         if (
             !response.ok ||
+            !data.ok ||
             !data.url
         ) {
+
             throw new Error(
                 data.error ||
-                "Не удалось создать оплату"
+                "Не удалось создать счёт"
             );
         }
+
 
         tg.openInvoice(
             data.url,
             function(status) {
 
                 console.log(
-                    "⭐ Payment:",
+                    "PAYMENT STATUS:",
                     status
                 );
 
-                if (
-                    status === "paid"
-                ) {
+
+                if (status === "paid") {
+
                     haptic("success");
 
-                    spinRoulette();
-                }
+                    /*
+                        После успешной оплаты
+                        запускаем оплаченный spin.
+                    */
 
-                if (
-                    status === "cancelled"
-                ) {
-                    console.log(
-                        "Оплата отменена"
+                    isSpinning = true;
+
+                    setButtonsDisabled(true);
+
+                    showScreen(
+                        rouletteScreen
+                    );
+
+
+                    const prize =
+                        getRandomPrize();
+
+
+                    startWheelSpin(
+                        prize
                     );
                 }
 
-                if (
+
+                else if (
+                    status === "cancelled"
+                ) {
+
+                    console.log(
+                        "Пользователь отменил оплату"
+                    );
+
+                }
+
+
+                else if (
                     status === "failed"
                 ) {
+
+                    haptic("error");
+
                     tg.showAlert?.(
                         "❌ Оплата не прошла."
                     );
                 }
+
+
+                else if (
+                    status === "pending"
+                ) {
+
+                    console.log(
+                        "Платёж ожидает обработки"
+                    );
+                }
+
             }
         );
 
@@ -511,8 +637,9 @@ async function payStars() {
             error
         );
 
-        tg.showAlert?.(
-            "❌ Ошибка оплаты:\n\n" +
+
+        tg?.showAlert?.(
+            "❌ Ошибка оплаты.\n\n" +
             error.message
         );
     }
@@ -520,19 +647,24 @@ async function payStars() {
 
 
 /* ==========================================
-   CLAIM
+   CLAIM PRIZE
 ========================================== */
 
 function claimPrize() {
 
+    haptic("light");
+
+
     const url =
         "https://t.me/Andrey_AItrade";
 
-    if (
-        tg?.openTelegramLink
-    ) {
+
+    if (tg?.openTelegramLink) {
+
         tg.openTelegramLink(url);
+
     } else {
+
         window.open(
             url,
             "_blank"
@@ -545,67 +677,56 @@ function claimPrize() {
    EVENTS
 ========================================== */
 
-if (spinButton) {
-    spinButton.addEventListener(
-        "click",
-        spinRoulette
-    );
-}
+spinButton?.addEventListener(
+    "click",
+    spinRoulette
+);
 
-if (repeatHomeButton) {
-    repeatHomeButton.addEventListener(
-        "click",
-        payStars
-    );
-}
 
-if (spinAgainButton) {
-    spinAgainButton.addEventListener(
-        "click",
-        payStars
-    );
-}
+repeatHomeButton?.addEventListener(
+    "click",
+    payStars
+);
 
-if (repeatResultButton) {
-    repeatResultButton.addEventListener(
-        "click",
-        payStars
-    );
-}
 
-if (backButton) {
-    backButton.addEventListener(
-        "click",
-        () => {
+spinAgainButton?.addEventListener(
+    "click",
+    payStars
+);
 
-            if (isSpinning) {
-                return;
-            }
 
-            showScreen(
-                homeScreen
-            );
+repeatResultButton?.addEventListener(
+    "click",
+    payStars
+);
+
+
+backButton?.addEventListener(
+    "click",
+    () => {
+
+        if (isSpinning) {
+            return;
         }
-    );
-}
 
-if (claimButton) {
-    claimButton.addEventListener(
-        "click",
-        claimPrize
-    );
-}
+        showScreen(homeScreen);
+    }
+);
+
+
+claimButton?.addEventListener(
+    "click",
+    claimPrize
+);
 
 
 /* ==========================================
-   START
+   INITIALIZE
 ========================================== */
 
 createWheelLabels();
 
-showScreen(
-    homeScreen
-);
+showScreen(homeScreen);
 
 console.log(
     "🎰 CRYPTO ROULETTE READY"
