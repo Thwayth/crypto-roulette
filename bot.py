@@ -1,4 +1,3 @@
-```python
 import asyncio
 import os
 from pathlib import Path
@@ -6,7 +5,11 @@ from pathlib import Path
 from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart
-from aiogram.types import Message
+from aiogram.types import (
+    Message,
+    LabeledPrice,
+    PreCheckoutQuery,
+)
 
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -29,57 +32,16 @@ async def start(message: Message):
     )
 
 
-async def index(request):
-    return web.FileResponse(BASE_DIR / "index.html")
+# =========================
+# CREATE STARS INVOICE
+# =========================
 
+async def create_invoice(request):
+    try:
+        data = await request.json()
 
-async def javascript(request):
-    return web.FileResponse(BASE_DIR / "app.js")
+        user_id = data.get("user_id")
 
-
-async def css(request):
-    return web.FileResponse(BASE_DIR / "style.css")
-
-
-async def health(request):
-    return web.Response(text="OK")
-
-
-async def start_web_server():
-    app = web.Application()
-
-    app.router.add_get("/", index)
-    app.router.add_get("/index.html", index)
-    app.router.add_get("/app.js", javascript)
-    app.router.add_get("/style.css", css)
-    app.router.add_get("/health", health)
-
-    port = int(os.getenv("PORT", "10000"))
-
-    runner = web.AppRunner(app)
-    await runner.setup()
-
-    site = web.TCPSite(
-        runner,
-        "0.0.0.0",
-        port
-    )
-
-    await site.start()
-
-    print(f"🌐 Web server запущен на порту {port}")
-
-
-async def main():
-    print("🤖 Бот запускается...")
-
-    await start_web_server()
-
-    print("🤖 Telegram polling запущен!")
-
-    await dp.start_polling(bot)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
+        if not user_id:
+            return web.json_response(
+                {"error
