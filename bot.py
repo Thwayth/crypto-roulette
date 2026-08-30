@@ -1,73 +1,223 @@
+```python
 import asyncio
 import os
 import json
+import time
 
 from aiohttp import web
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart
-from aiogram.types import Message, PreCheckoutQuery, LabeledPrice
+from aiogram.types import (
+    Message,
+    PreCheckoutQuery,
+    LabeledPrice,
+)
+
+
+# ==========================================
+# SETTINGS
+# ==========================================
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 if not BOT_TOKEN:
-    raise RuntimeError("BOT_TOKEN не найден в Environment Variables")
+    raise RuntimeError(
+        "BOT_TOKEN не найден в Environment Variables"
+    )
+
+
+PORT = int(os.getenv("PORT", "10000"))
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 
 # ==========================================
-# START
+# TELEGRAM BOT
 # ==========================================
 
 @dp.message(CommandStart())
 async def start(message: Message):
+
     await message.answer(
         "🎰 CRYPTO ROULETTE\n\n"
         "Добро пожаловать!\n\n"
-        "Открой Mini App и крути рулетку."
+        "Открой рулетку через Mini App."
     )
 
 
 # ==========================================
-# CREATE TELEGRAM STARS INVOICE
+# PAYMENTS
+# ==========================================
+
+@dp.pre_checkout_query()
+async def process_pre_checkout(
+    query: PreCheckoutQuery
+):
+
+    print(
+        "💳 PRE-CHECKOUT:",
+        query.id,
+        query.total_amount,
+        query.currency,
+        query.invoice_payload
+    )
+
+    if query.currency != "XTR":
+        await query.answer(
+            ok=False,
+            error_message="Неверная валюта."
+        )
+        return
+
+    if query.total_amount != 100:
+        await query.answer(
+            ok=False,
+            error_message="Неверная сумма."
+        )
+        return
+
+    await query.answer(ok=True)
+
+
+@dp.message(
+    F.successful_payment
+)
+async def successful_payment(
+    message: Message
+):
+
+    payment = message.successful_payment
+
+    print(
+        "✅ ОПЛАТА STARS:",
+        payment.total_amount,
+        payment.currency,
+        payment.telegram_payment_charge_id
+    )
+
+    await message.answer(
+        "✅ Оплата 100 ⭐ получена!\n\n"
+        "🎰 Можно крутить рулетку."
+    )
+
+
+# ==========================================
+# MINI APP: INDEX
+# ==========================================
+
+async def index(request):
+
+    return web.FileResponse(
+        "index.html"
+    )
+
+
+# ==========================================
+# MINI APP: JS
+# ==========================================
+
+async def app_js(request):
+
+    return web.FileResponse(
+        "app.js"
+    )
+
+
+# ==========================================
+# MINI APP: CSS
+# ==========================================
+
+async def style_css(request):
+
+    return web.FileResponse(
+        "style.css"
+    )
+
+
+# ==========================================
+# HEALTH
+# ==========================================
+
+async def health(request):
+
+    return web.Response(
+        text="OK"
+    )
+
+
+# ==========================================
+# CREATE STARS INVOICE
 # ==========================================
 
 async def create_invoice(request):
 
     try:
+
         data = await request.json()
 
-        init_data = data.get("initData")
+    except Exception:
 
-        if not init_data:
-            return web.json_response(
-                {
-                    "ok": False,
-                    "error": "Telegram initData отсутствует"
-                },
-                status=400
-            )
+        data = {}
 
-        invoice_link = await bot.create_invoice_link(
-            title="🎰 Crypto Roulette",
-            description="Одна дополнительная прокрутка рулетки",
-            payload="roulette_spin_100",
+
+    user_id = data.get(
+        "user_id",
+        "unknown"
+    )
+
+
+    payload = (
+        f"roulette_spin:"
+        f"{user_id}:"
+        f"{int(time.time())}"
+    )
+
+
+    print(
+        "💰 Создание invoice:",
+        payload
+    )
+
+
+    try:
+
+        invoice_url = await bot.create_invoice_link(
+
+            title="CRYPTO ROULETTE",
+
+            description=(
+                "Одна дополнительная "
+                "прокрутка рулетки"
+            ),
+
+            payload=payload,
+
             currency="XTR",
+
             prices=[
                 LabeledPrice(
                     label="Прокрутка рулетки",
                     amount=100
                 )
-            ]
+            ],
+
+            provider_token=""
         )
+
+
+        print(
+            "✅ Invoice создан"
+        )
+
 
         return web.json_response(
             {
                 "ok": True,
-                "invoice_url": invoice_link
+                "url": invoice_url
             }
         )
+
 
     except Exception as error:
 
@@ -75,6 +225,7 @@ async def create_invoice(request):
             "❌ Ошибка создания invoice:",
             repr(error)
         )
+
 
         return web.json_response(
             {
@@ -86,85 +237,6 @@ async def create_invoice(request):
 
 
 # ==========================================
-# PRE-CHECKOUT
-# ==========================================
-
-@dp.pre_checkout_query()
-async def pre_checkout_handler(
-    pre_checkout_query: PreCheckoutQuery
-):
-
-    if pre_checkout_query.invoice_payload != "roulette_spin_100":
-
-        await pre_checkout_query.answer(
-            ok=False,
-            error_message="Неизвестный платёж."
-        )
-
-        return
-
-    await pre_checkout_query.answer(
-        ok=True
-    )
-
-
-# ==========================================
-# SUCCESSFUL PAYMENT
-# ==========================================
-
-@dp.message(F.successful_payment)
-async def successful_payment_handler(
-    message: Message
-):
-
-    payment = message.successful_payment
-
-    print(
-        "================================="
-    )
-
-    print(
-        "⭐ ПОЛУЧЕН ПЛАТЁЖ"
-    )
-
-    print(
-        "User:",
-        message.from_user.id
-    )
-
-    print(
-        "Stars:",
-        payment.total_amount
-    )
-
-    print(
-        "Charge ID:",
-        payment.telegram_payment_charge_id
-    )
-
-    print(
-        "================================="
-    )
-
-    await message.answer(
-        "✅ Оплата получена!\n\n"
-        "⭐ 100 Stars\n\n"
-        "Спасибо! Прокрутка оплачена."
-    )
-
-
-# ==========================================
-# HEALTH CHECK
-# ==========================================
-
-async def health(request):
-
-    return web.Response(
-        text="OK"
-    )
-
-
-# ==========================================
 # WEB SERVER
 # ==========================================
 
@@ -172,10 +244,31 @@ async def start_web_server():
 
     app = web.Application()
 
+
+    # Mini App
+
     app.router.add_get(
         "/",
-        health
+        index
     )
+
+    app.router.add_get(
+        "/index.html",
+        index
+    )
+
+    app.router.add_get(
+        "/app.js",
+        app_js
+    )
+
+    app.router.add_get(
+        "/style.css",
+        style_css
+    )
+
+
+    # API
 
     app.router.add_get(
         "/health",
@@ -187,27 +280,25 @@ async def start_web_server():
         create_invoice
     )
 
-    port = int(
-        os.getenv(
-            "PORT",
-            "10000"
-        )
-    )
 
     runner = web.AppRunner(app)
 
     await runner.setup()
 
+
     site = web.TCPSite(
         runner,
         "0.0.0.0",
-        port
+        PORT
     )
+
 
     await site.start()
 
+
     print(
-        f"🌐 Web server запущен на порту {port}"
+        f"🌐 Web server запущен "
+        f"на порту {PORT}"
     )
 
 
@@ -221,19 +312,35 @@ async def main():
         "🤖 Бот запускается..."
     )
 
+
     await start_web_server()
+
 
     print(
         "🤖 Telegram polling запущен!"
     )
+
 
     await dp.start_polling(
         bot
     )
 
 
+# ==========================================
+# RUN
+# ==========================================
+
 if __name__ == "__main__":
 
-    asyncio.run(
-        main()
-    )
+    try:
+
+        asyncio.run(
+            main()
+        )
+
+    except KeyboardInterrupt:
+
+        print(
+            "🛑 Бот остановлен"
+        )
+```
