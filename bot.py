@@ -1,10 +1,10 @@
 import asyncio
-import json
 import os
-import uuid
+import sqlite3
+from pathlib import Path
 
 from aiohttp import web
-from aiogram import Bot, Dispatcher, F
+from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart
 from aiogram.types import Message, LabeledPrice, PreCheckoutQuery
 
@@ -15,385 +15,208 @@ if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN не найден в Environment Variables")
 
 
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "roulette.db"
+
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-USERS_FILE = "users.json"
 
-
-# =========================================================
+# ==============================
 # DATABASE
-# =========================================================
+# ==============================
 
-def load_users():
-    if not os.path.exists(USERS_FILE):
-        return {}
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
 
-    try:
-        with open(USERS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-
-def save_users(users):
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(
-            users,
-            f,
-            ensure_ascii=False,
-            indent=2
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS free_spins (
+            user_id INTEGER PRIMARY KEY
         )
+    """)
+
+    conn.commit()
+    conn.close()
 
 
-users = load_users()
+def has_free_spin(user_id):
+    conn = sqlite3.connect(DB_PATH)
+
+    result = conn.execute(
+        "SELECT user_id FROM free_spins WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+
+    conn.close()
+
+    return result is not None
 
 
-def get_user(user_id):
-    user_id = str(user_id)
+def use_free_spin(user_id):
+    conn = sqlite3.connect(DB_PATH)
 
-    if user_id not in users:
-        users[user_id] = {
-            "free_spin_used": False,
-            "paid_spins": 0
-        }
-        save_users(users)
+    conn.execute(
+        "INSERT OR IGNORE INTO free_spins (user_id) VALUES (?)",
+        (user_id,)
+    )
 
-    return users[user_id]
+    conn.commit()
+    conn.close()
 
 
-# =========================================================
-# START
-# =========================================================
+# ==============================
+# BOT
+# ==============================
 
 @dp.message(CommandStart())
 async def start(message: Message):
-
-    user = get_user(message.from_user.id)
-
-    if user["free_spin_used"]:
-        text = (
-            "🎰 CRYPTO ROULETTE\n\n"
-            "Твоя бесплатная прокрутка уже использована.\n\n"
-            "Следующая прокрутка — 100 ⭐."
-        )
-    else:
-        text = (
-            "🎰 CRYPTO ROULETTE\n\n"
-            "У тебя есть 1 бесплатная прокрутка!\n\n"
-            "После неё следующая прокрутка стоит 100 ⭐."
-        )
-
-    await message.answer(text)
+    await message.answer(
+        "🎰 CRYPTO ROULETTE\n\n"
+        "Открой Mini App и прокрути рулетку."
+    )
 
 
-# =========================================================
-# FREE SPIN
-# =========================================================
-
-async def use_free_spin(request):
-
-    try:
-        data = await request.json()
-
-        user_id = str(data.get("user_id", ""))
-
-        if not user_id:
-            return web.json_response(
-                {
-                    "ok": False,
-                    "error": "Telegram user_id не найден"
-                },
-                status=400
-            )
-
-        user = get_user(user_id)
-
-        if user["free_spin_used"]:
-
-            return web.json_response({
-                "ok": False,
-                "error": "Бесплатная прокрутка уже использована"
-            })
-
-        user["free_spin_used"] = True
-
-        save_users(users)
-
-        print(
-            f"FREE SPIN USED: {user_id}"
-        )
-
-        return web.json_response({
-            "ok": True
-        })
-
-    except Exception as e:
-
-        print(
-            "FREE SPIN ERROR:",
-            repr(e)
-        )
-
-        return web.json_response(
-            {
-                "ok": False,
-                "error": str(e)
-            },
-            status=500
-        )
-
-
-# =========================================================
+# ==============================
 # CREATE STARS INVOICE
-# =========================================================
+# ==============================
 
 async def create_invoice(request):
-
     try:
-
         data = await request.json()
 
-        user_id = str(
-            data.get("user_id", "")
-        )
+        user_id = data.get("user_id")
 
         if not user_id:
-
             return web.json_response(
-                {
-                    "ok": False,
-                    "error": "user_id не найден"
-                },
+                {"error": "Telegram user_id не найден"},
                 status=400
             )
 
-        user = get_user(user_id)
+        user_id = int(user_id)
 
-        # Создаём уникальный payload
-        payload = (
-            f"roulette_100_"
-            f"{user_id}_"
-            f"{uuid.uuid4().hex}"
-        )
-
-        prices = [
-            LabeledPrice(
-                label="🎰 Прокрутка рулетки",
-                amount=100
+        # Пользователь должен сначала использовать бесплатный спин
+        if not has_free_spin(user_id):
+            return web.json_response(
+                {"error": "Сначала используй бесплатную прокрутку"},
+                status=400
             )
-        ]
-
-        print(
-            "CREATING INVOICE FOR:",
-            user_id
-        )
 
         invoice_url = await bot.create_invoice_link(
-            title="🎰 CRYPTO ROULETTE",
-            description="Одна дополнительная прокрутка рулетки",
-            payload=payload,
+            title="Прокрутка рулетки",
+            description="Дополнительная прокрутка CRYPTO ROULETTE",
+            payload=f"roulette:{user_id}",
             currency="XTR",
-            prices=prices
-        )
-
-        print(
-            "INVOICE CREATED:",
-            invoice_url
+            prices=[
+                LabeledPrice(
+                    label="Прокрутка рулетки",
+                    amount=100
+                )
+            ],
+            provider_token=""
         )
 
         return web.json_response({
-            "ok": True,
             "url": invoice_url
         })
 
     except Exception as e:
-
-        print(
-            "CREATE INVOICE ERROR:",
-            repr(e)
-        )
+        print("CREATE INVOICE ERROR:", repr(e))
 
         return web.json_response(
-            {
-                "ok": False,
-                "error": str(e)
-            },
+            {"error": str(e)},
             status=500
         )
 
 
-# =========================================================
-# PRE CHECKOUT
-# =========================================================
+# ==============================
+# PRE-CHECKOUT
+# ==============================
 
 @dp.pre_checkout_query()
-async def pre_checkout(
-    query: PreCheckoutQuery
-):
-
+async def pre_checkout(query: PreCheckoutQuery):
     try:
+        await query.answer(ok=True)
 
         print(
-            "PRE-CHECKOUT:",
+            "PRE CHECKOUT:",
             query.from_user.id,
-            query.currency,
             query.total_amount,
-            query.invoice_payload
-        )
-
-        # Проверяем Stars
-        if query.currency != "XTR":
-
-            await query.answer(
-                ok=False,
-                error_message="Ошибка валюты платежа."
-            )
-
-            return
-
-        # Проверяем сумму
-        if query.total_amount != 100:
-
-            await query.answer(
-                ok=False,
-                error_message="Неверная сумма платежа."
-            )
-
-            return
-
-        await query.answer(
-            ok=True
-        )
-
-        print(
-            "PRE-CHECKOUT APPROVED"
+            query.currency
         )
 
     except Exception as e:
-
-        print(
-            "PRE-CHECKOUT ERROR:",
-            repr(e)
-        )
-
-        try:
-            await query.answer(
-                ok=False,
-                error_message="Ошибка обработки платежа."
-            )
-        except Exception:
-            pass
+        print("PRE CHECKOUT ERROR:", repr(e))
 
 
-# =========================================================
+# ==============================
 # SUCCESSFUL PAYMENT
-# =========================================================
+# ==============================
 
-@dp.message(F.successful_payment)
-async def successful_payment(
-    message: Message
-):
+@dp.message()
+async def successful_payment(message: Message):
+
+    if not message.successful_payment:
+        return
 
     payment = message.successful_payment
 
-    user_id = str(
-        message.from_user.id
-    )
-
-    user = get_user(user_id)
-
-    user["paid_spins"] += 1
-
-    save_users(users)
-
     print(
-        "================================="
-    )
-
-    print(
-        "⭐ PAYMENT SUCCESS"
-    )
-
-    print(
-        "USER:",
-        user_id
-    )
-
-    print(
-        "AMOUNT:",
-        payment.total_amount
-    )
-
-    print(
-        "CURRENCY:",
+        "PAYMENT SUCCESS:",
+        message.from_user.id,
+        payment.total_amount,
         payment.currency
     )
 
-    print(
-        "CHARGE:",
-        payment.telegram_payment_charge_id
-    )
-
-    print(
-        "PAID SPINS:",
-        user["paid_spins"]
-    )
-
-    print(
-        "================================="
-    )
-
     await message.answer(
-        "✅ Оплата 100 ⭐ прошла!\n\n"
-        "🎰 Тебе добавлена 1 прокрутка."
+        "✅ Оплата прошла успешно!"
     )
 
 
-# =========================================================
-# HEALTH
-# =========================================================
+# ==============================
+# WEB SERVER
+# ==============================
 
 async def health(request):
+    return web.Response(text="OK")
 
-    return web.Response(
-        text="OK"
+
+async def index(request):
+    return web.FileResponse(
+        BASE_DIR / "index.html"
     )
 
 
-# =========================================================
-# WEB SERVER
-# =========================================================
+async def app_js(request):
+    return web.FileResponse(
+        BASE_DIR / "app.js"
+    )
+
+
+async def style_css(request):
+    return web.FileResponse(
+        BASE_DIR / "style.css"
+    )
+
 
 async def start_web_server():
 
     app = web.Application()
 
-    app.router.add_get(
-        "/",
-        health
-    )
+    app.router.add_get("/", index)
+    app.router.add_get("/index.html", index)
 
-    app.router.add_get(
-        "/health",
-        health
-    )
+    app.router.add_get("/app.js", app_js)
+    app.router.add_get("/style.css", style_css)
+
+    app.router.add_get("/health", health)
 
     app.router.add_post(
         "/create-invoice",
         create_invoice
     )
 
-    app.router.add_post(
-        "/use-free-spin",
-        use_free_spin
-    )
-
     port = int(
-        os.getenv(
-            "PORT",
-            "10000"
-        )
+        os.getenv("PORT", "10000")
     )
 
     runner = web.AppRunner(app)
@@ -409,25 +232,23 @@ async def start_web_server():
     await site.start()
 
     print(
-        f"🌐 Web server запущен: {port}"
+        f"WEB SERVER STARTED ON PORT {port}"
     )
 
 
-# =========================================================
+# ==============================
 # MAIN
-# =========================================================
+# ==============================
 
 async def main():
 
-    print(
-        "🤖 Бот запускается..."
-    )
+    init_db()
+
+    print("BOT STARTING...")
 
     await start_web_server()
 
-    print(
-        "🤖 Telegram polling запущен!"
-    )
+    print("TELEGRAM POLLING STARTED")
 
     await dp.start_polling(bot)
 
