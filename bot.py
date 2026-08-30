@@ -1,3 +1,4 @@
+```python
 import asyncio
 import os
 import sqlite3
@@ -21,14 +22,27 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 if not BOT_TOKEN:
     raise RuntimeError(
-        "❌ BOT_TOKEN не найден в Environment Variables"
+        "BOT_TOKEN не найден в Environment Variables"
     )
 
 
 BASE_DIR = Path(__file__).resolve().parent
+
 DB_PATH = BASE_DIR / "roulette.db"
 
-bot = Bot(token=BOT_TOKEN)
+PORT = int(
+    os.getenv("PORT", "10000")
+)
+
+
+# ============================================================
+# TELEGRAM
+# ============================================================
+
+bot = Bot(
+    token=BOT_TOKEN
+)
+
 dp = Dispatcher()
 
 
@@ -44,16 +58,20 @@ def get_db():
 
 
 def init_db():
+
     conn = get_db()
 
-    conn.execute("""
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS free_spins (
             user_id INTEGER PRIMARY KEY,
             used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
+        """
+    )
 
-    conn.execute("""
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS payments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -61,24 +79,28 @@ def init_db():
             amount INTEGER NOT NULL,
             currency TEXT NOT NULL,
             telegram_charge_id TEXT,
+            provider_charge_id TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
+        """
+    )
 
     conn.commit()
     conn.close()
 
-    print("✅ DATABASE READY")
+    print("✅ DATABASE INITIALIZED")
 
 
 # ============================================================
-# FREE SPIN
+# FREE SPIN DATABASE
 # ============================================================
 
-def has_free_spin_been_used(user_id: int) -> bool:
+def has_free_spin(user_id: int) -> bool:
+
     conn = get_db()
 
     try:
+
         result = conn.execute(
             """
             SELECT 1
@@ -92,13 +114,16 @@ def has_free_spin_been_used(user_id: int) -> bool:
         return result is not None
 
     finally:
+
         conn.close()
 
 
-def mark_free_spin_used(user_id: int) -> bool:
+def use_free_spin(user_id: int) -> bool:
+
     conn = get_db()
 
     try:
+
         cursor = conn.execute(
             """
             INSERT OR IGNORE INTO free_spins (user_id)
@@ -112,11 +137,85 @@ def mark_free_spin_used(user_id: int) -> bool:
         return cursor.rowcount == 1
 
     finally:
+
         conn.close()
 
 
 # ============================================================
-# BOT / START
+# PAYMENT DATABASE
+# ============================================================
+
+def save_payment(
+    user_id: int,
+    payload: str,
+    amount: int,
+    currency: str,
+    telegram_charge_id: str,
+    provider_charge_id: str
+):
+
+    conn = get_db()
+
+    try:
+
+        conn.execute(
+            """
+            INSERT INTO payments (
+                user_id,
+                payload,
+                amount,
+                currency,
+                telegram_charge_id,
+                provider_charge_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                user_id,
+                payload,
+                amount,
+                currency,
+                telegram_charge_id,
+                provider_charge_id
+            )
+        )
+
+        conn.commit()
+
+    finally:
+
+        conn.close()
+
+
+# ============================================================
+# CHECK PAID USER
+# ============================================================
+
+def has_paid_spin(user_id: int) -> bool:
+
+    conn = get_db()
+
+    try:
+
+        result = conn.execute(
+            """
+            SELECT 1
+            FROM payments
+            WHERE user_id = ?
+            LIMIT 1
+            """,
+            (user_id,)
+        ).fetchone()
+
+        return result is not None
+
+    finally:
+
+        conn.close()
+
+
+# ============================================================
+# /START
 # ============================================================
 
 @dp.message(CommandStart())
@@ -134,12 +233,16 @@ async def start(message: Message):
 # FREE SPIN API
 # ============================================================
 
-async def use_free_spin(request: web.Request):
+async def free_spin_api(
+    request: web.Request
+):
 
     try:
+
         data = await request.json()
 
     except Exception:
+
         return web.json_response(
             {
                 "ok": False,
@@ -148,17 +251,22 @@ async def use_free_spin(request: web.Request):
             status=400
         )
 
-    try:
-        user_id = data.get("user_id")
 
-        if not user_id:
-            return web.json_response(
-                {
-                    "ok": False,
-                    "error": "Telegram user_id не найден"
-                },
-                status=400
-            )
+    user_id = data.get("user_id")
+
+
+    if not user_id:
+
+        return web.json_response(
+            {
+                "ok": False,
+                "error": "Telegram user_id не найден"
+            },
+            status=400
+        )
+
+
+    try:
 
         user_id = int(user_id)
 
@@ -167,7 +275,7 @@ async def use_free_spin(request: web.Request):
         return web.json_response(
             {
                 "ok": False,
-                "error": "Некорректный Telegram user_id"
+                "error": "Некорректный user_id"
             },
             status=400
         )
@@ -177,7 +285,7 @@ async def use_free_spin(request: web.Request):
     # ПРОВЕРЯЕМ БЕСПЛАТНЫЙ ПРОКРУТ
     # --------------------------------------------------------
 
-    if has_free_spin_been_used(user_id):
+    if has_free_spin(user_id):
 
         print(
             "⚠️ FREE SPIN ALREADY USED:",
@@ -197,7 +305,8 @@ async def use_free_spin(request: web.Request):
     # ЗАНИМАЕМ БЕСПЛАТНЫЙ ПРОКРУТ
     # --------------------------------------------------------
 
-    success = mark_free_spin_used(user_id)
+    success = use_free_spin(user_id)
+
 
     if not success:
 
@@ -225,12 +334,15 @@ async def use_free_spin(request: web.Request):
 
 
 # ============================================================
-# CREATE TELEGRAM STARS INVOICE
+# CREATE STARS INVOICE
 # ============================================================
 
-async def create_invoice(request: web.Request):
+async def create_invoice(
+    request: web.Request
+):
 
     try:
+
         data = await request.json()
 
     except Exception:
@@ -244,18 +356,21 @@ async def create_invoice(request: web.Request):
         )
 
 
+    user_id = data.get("user_id")
+
+
+    if not user_id:
+
+        return web.json_response(
+            {
+                "ok": False,
+                "error": "Telegram user_id не найден"
+            },
+            status=400
+        )
+
+
     try:
-        user_id = data.get("user_id")
-
-        if not user_id:
-
-            return web.json_response(
-                {
-                    "ok": False,
-                    "error": "Telegram user_id не найден"
-                },
-                status=400
-            )
 
         user_id = int(user_id)
 
@@ -264,17 +379,17 @@ async def create_invoice(request: web.Request):
         return web.json_response(
             {
                 "ok": False,
-                "error": "Некорректный Telegram user_id"
+                "error": "Некорректный user_id"
             },
             status=400
         )
 
 
     # --------------------------------------------------------
-    # ПЛАТНЫЙ СПИН ДОСТУПЕН ТОЛЬКО ПОСЛЕ БЕСПЛАТНОГО
+    # ПОЛЬЗОВАТЕЛЬ ДОЛЖЕН ИМЕТЬ БЕСПЛАТНЫЙ СПИН
     # --------------------------------------------------------
 
-    if not has_free_spin_been_used(user_id):
+    if not has_free_spin(user_id):
 
         return web.json_response(
             {
@@ -289,7 +404,9 @@ async def create_invoice(request: web.Request):
     # PAYLOAD
     # --------------------------------------------------------
 
-    payload = f"roulette:{user_id}"
+    payload = (
+        f"roulette_paid:{user_id}"
+    )
 
 
     # --------------------------------------------------------
@@ -300,11 +417,11 @@ async def create_invoice(request: web.Request):
 
         invoice_url = await bot.create_invoice_link(
 
-            title="🎰 Прокрутка рулетки",
+            title="🎰 CRYPTO ROULETTE",
 
             description=(
                 "Дополнительная прокрутка "
-                "CRYPTO ROULETTE"
+                "рулетки"
             ),
 
             payload=payload,
@@ -324,7 +441,7 @@ async def create_invoice(request: web.Request):
     except Exception as e:
 
         print(
-            "❌ TELEGRAM INVOICE ERROR:",
+            "❌ CREATE INVOICE ERROR:",
             repr(e)
         )
 
@@ -332,9 +449,8 @@ async def create_invoice(request: web.Request):
             {
                 "ok": False,
                 "error": (
-                    "Telegram не смог создать "
-                    "счёт на оплату: "
-                    + str(e)
+                    "Не удалось создать "
+                    "счёт Telegram Stars"
                 )
             },
             status=500
@@ -342,7 +458,7 @@ async def create_invoice(request: web.Request):
 
 
     print(
-        "💰 INVOICE CREATED:",
+        "⭐ INVOICE CREATED:",
         user_id
     )
 
@@ -356,16 +472,18 @@ async def create_invoice(request: web.Request):
 
 
 # ============================================================
-# PRE-CHECKOUT
+# PRE CHECKOUT
 # ============================================================
 
 @dp.pre_checkout_query()
-async def pre_checkout(query: PreCheckoutQuery):
+async def pre_checkout(
+    query: PreCheckoutQuery
+):
 
     try:
 
         print(
-            "💳 PRE-CHECKOUT:",
+            "💳 PRE CHECKOUT:",
             query.from_user.id,
             query.total_amount,
             query.currency,
@@ -374,7 +492,7 @@ async def pre_checkout(query: PreCheckoutQuery):
 
 
         # ----------------------------------------------------
-        # ПРОВЕРКА ВАЛЮТЫ
+        # ВАЛЮТА
         # ----------------------------------------------------
 
         if query.currency != "XTR":
@@ -382,7 +500,7 @@ async def pre_checkout(query: PreCheckoutQuery):
             await query.answer(
                 ok=False,
                 error_message=(
-                    "Неверная валюта платежа."
+                    "Ошибка валюты платежа."
                 )
             )
 
@@ -390,7 +508,7 @@ async def pre_checkout(query: PreCheckoutQuery):
 
 
         # ----------------------------------------------------
-        # ПРОВЕРКА ЦЕНЫ
+        # ЦЕНА
         # ----------------------------------------------------
 
         if query.total_amount != 100:
@@ -398,7 +516,7 @@ async def pre_checkout(query: PreCheckoutQuery):
             await query.answer(
                 ok=False,
                 error_message=(
-                    "Неверная стоимость прокрутки."
+                    "Неверная стоимость."
                 )
             )
 
@@ -406,11 +524,11 @@ async def pre_checkout(query: PreCheckoutQuery):
 
 
         # ----------------------------------------------------
-        # ПРОВЕРКА PAYLOAD
+        # PAYLOAD
         # ----------------------------------------------------
 
         if not query.invoice_payload.startswith(
-            "roulette:"
+            "roulette_paid:"
         ):
 
             await query.answer(
@@ -424,7 +542,7 @@ async def pre_checkout(query: PreCheckoutQuery):
 
 
         # ----------------------------------------------------
-        # ВСЁ ОК
+        # PAYMENT OK
         # ----------------------------------------------------
 
         await query.answer(
@@ -432,7 +550,7 @@ async def pre_checkout(query: PreCheckoutQuery):
         )
 
         print(
-            "✅ PRE-CHECKOUT APPROVED:",
+            "✅ PAYMENT APPROVED:",
             query.from_user.id
         )
 
@@ -440,21 +558,9 @@ async def pre_checkout(query: PreCheckoutQuery):
     except Exception as e:
 
         print(
-            "❌ PRE-CHECKOUT ERROR:",
+            "❌ PRE CHECKOUT ERROR:",
             repr(e)
         )
-
-        try:
-
-            await query.answer(
-                ok=False,
-                error_message=(
-                    "Ошибка проверки платежа."
-                )
-            )
-
-        except Exception:
-            pass
 
 
 # ============================================================
@@ -467,6 +573,7 @@ async def successful_payment(
 ):
 
     if not message.successful_payment:
+
         return
 
 
@@ -476,11 +583,11 @@ async def successful_payment(
 
 
     print(
-        "================================"
+        "=========================================="
     )
 
     print(
-        "💰 PAYMENT SUCCESS"
+        "💰 SUCCESSFUL TELEGRAM STARS PAYMENT"
     )
 
     print(
@@ -504,7 +611,17 @@ async def successful_payment(
     )
 
     print(
-        "================================"
+        "TELEGRAM CHARGE:",
+        payment.telegram_payment_charge_id
+    )
+
+    print(
+        "PROVIDER CHARGE:",
+        payment.provider_payment_charge_id
+    )
+
+    print(
+        "=========================================="
     )
 
 
@@ -512,54 +629,44 @@ async def successful_payment(
     # СОХРАНЯЕМ ПЛАТЁЖ
     # --------------------------------------------------------
 
-    conn = get_db()
+    save_payment(
 
-    try:
+        user_id=user_id,
 
-        conn.execute(
-            """
-            INSERT INTO payments (
-                user_id,
-                payload,
-                amount,
-                currency,
-                telegram_charge_id
-            )
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (
-                user_id,
-                payment.invoice_payload,
-                payment.total_amount,
-                payment.currency,
-                payment.telegram_payment_charge_id
-            )
+        payload=payment.invoice_payload,
+
+        amount=payment.total_amount,
+
+        currency=payment.currency,
+
+        telegram_charge_id=(
+            payment.telegram_payment_charge_id
+        ),
+
+        provider_charge_id=(
+            payment.provider_payment_charge_id
         )
-
-        conn.commit()
-
-    finally:
-
-        conn.close()
+    )
 
 
     # --------------------------------------------------------
-    # ОТВЕТ ПОЛЬЗОВАТЕЛЮ
+    # ОТВЕТ
     # --------------------------------------------------------
 
     await message.answer(
         "✅ Оплата прошла успешно!\n\n"
         "⭐ 100 Stars получены.\n"
-        "🎰 Дополнительная прокрутка доступна.\n\n"
-        "Возвращайся в Mini App."
+        "🎰 Дополнительная прокрутка доступна."
     )
 
 
 # ============================================================
-# HEALTH CHECK
+# HEALTH
 # ============================================================
 
-async def health(request: web.Request):
+async def health(
+    request: web.Request
+):
 
     return web.json_response(
         {
@@ -570,24 +677,38 @@ async def health(request: web.Request):
 
 
 # ============================================================
-# STATIC FILES
+# INDEX
 # ============================================================
 
-async def index(request: web.Request):
+async def index(
+    request: web.Request
+):
 
     return web.FileResponse(
         BASE_DIR / "index.html"
     )
 
 
-async def app_js(request: web.Request):
+# ============================================================
+# APP.JS
+# ============================================================
+
+async def app_js(
+    request: web.Request
+):
 
     return web.FileResponse(
         BASE_DIR / "app.js"
     )
 
 
-async def style_css(request: web.Request):
+# ============================================================
+# STYLE.CSS
+# ============================================================
+
+async def style_css(
+    request: web.Request
+):
 
     return web.FileResponse(
         BASE_DIR / "style.css"
@@ -619,7 +740,7 @@ async def start_web_server():
 
 
     # --------------------------------------------------------
-    # STATIC
+    # FILES
     # --------------------------------------------------------
 
     app.router.add_get(
@@ -644,7 +765,7 @@ async def start_web_server():
 
     app.router.add_post(
         "/use-free-spin",
-        use_free_spin
+        free_spin_api
     )
 
     app.router.add_post(
@@ -654,19 +775,7 @@ async def start_web_server():
 
 
     # --------------------------------------------------------
-    # PORT
-    # --------------------------------------------------------
-
-    port = int(
-        os.getenv(
-            "PORT",
-            "10000"
-        )
-    )
-
-
-    # --------------------------------------------------------
-    # START
+    # START SERVER
     # --------------------------------------------------------
 
     runner = web.AppRunner(
@@ -679,14 +788,14 @@ async def start_web_server():
     site = web.TCPSite(
         runner,
         "0.0.0.0",
-        port
+        PORT
     )
 
     await site.start()
 
 
     print(
-        "================================"
+        "=========================================="
     )
 
     print(
@@ -694,11 +803,11 @@ async def start_web_server():
     )
 
     print(
-        f"PORT: {port}"
+        f"PORT: {PORT}"
     )
 
     print(
-        "================================"
+        "=========================================="
     )
 
 
@@ -708,15 +817,11 @@ async def start_web_server():
 
 async def main():
 
-    # --------------------------------------------------------
-    # DATABASE
-    # --------------------------------------------------------
-
     init_db()
 
 
     print(
-        "================================"
+        "=========================================="
     )
 
     print(
@@ -728,13 +833,9 @@ async def main():
     )
 
     print(
-        "================================"
+        "=========================================="
     )
 
-
-    # --------------------------------------------------------
-    # WEB SERVER
-    # --------------------------------------------------------
 
     await start_web_server()
 
@@ -742,11 +843,6 @@ async def main():
     print(
         "🌐 WEB SERVER READY"
     )
-
-
-    # --------------------------------------------------------
-    # TELEGRAM BOT
-    # --------------------------------------------------------
 
     print(
         "📡 TELEGRAM POLLING STARTED"
@@ -775,3 +871,4 @@ if __name__ == "__main__":
         print(
             "🛑 BOT STOPPED"
         )
+```
