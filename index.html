@@ -1,12 +1,10 @@
+<!DOCTYPE html>
 <html lang="ru">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     >
 
     <title>Crypto Roulette</title>
@@ -14,87 +12,186 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <link rel="stylesheet" href="style.css">
-
 </head>
 
 <body>
 
 <div class="app">
 
-    <h1>🎰 CRYPTO ROULETTE</h1>
+    <!-- HOME -->
+    <section id="homeScreen" class="screen active">
 
-    <p class="subtitle">
-        Что тебе выпадет сегодня?
-    </p>
+        <div class="brand">
+            <div class="brand-icon">◎</div>
 
+            <div class="brand-title">
+                <span>CRYPTO</span>
+                <strong>ROULETTE</strong>
+            </div>
 
-    <div class="wheel-wrapper">
-
-        <div class="pointer">
-            ▼
+            <p>Испытай удачу и получи ценный приз</p>
         </div>
 
 
-        <div id="wheel" class="wheel">
+        <!-- PRIZES -->
 
-            <div class="label label1">
-                🐂<br>BULL
+        <div class="prizes">
+
+            <div class="prize-card gold">
+                <div class="prize-icon">🏆</div>
+                <div class="prize-name">$1,000</div>
+                <div class="prize-description">Заглавный приз</div>
             </div>
 
-            <div class="label label2">
-                🐻<br>BEAR
+            <div class="prize-card purple">
+                <div class="prize-icon">💎</div>
+                <div class="prize-name">VIP</div>
+                <div class="prize-description">VIP-доступ</div>
             </div>
 
-            <div class="label label3">
-                🐋<br>WHALE
+            <div class="prize-card orange">
+                <div class="prize-icon">🔥</div>
+                <div class="prize-name">МАРАФОН</div>
+                <div class="prize-description">Торговый марафон</div>
             </div>
 
-            <div class="label label4">
-                💎<br>GEM
+            <div class="prize-card green">
+                <div class="prize-icon">📈</div>
+                <div class="prize-name">СИГНАЛ</div>
+                <div class="prize-description">НА 300%</div>
             </div>
 
-            <div class="label label5">
-                🔥<br>DEGEN
-            </div>
-
-            <div class="label label6">
-                👀<br>WATCH
-            </div>
-
-
-            <div class="wheel-center">
-                CRYPTO
+            <div class="prize-card blue">
+                <div class="prize-icon">🎓</div>
+                <div class="prize-name">ОБУЧЕНИЕ</div>
+                <div class="prize-description">Полный доступ</div>
             </div>
 
         </div>
 
-    </div>
+
+        <!-- MAIN BUTTON -->
+
+        <button id="spinButton" class="primary-button">
+    <span>◎</span>
+    КРУТИТЬ БЕСПЛАТНО
+</button>
 
 
-    <button
-        id="spinButton"
-        class="spin-button"
-    >
-        🎰 КРУТИТЬ
-    </button>
+        <!-- REPEAT BUTTON -->
+
+        <button id="repeatHomeButton" class="secondary-button">
+            <span>☆</span>
+            КРУТИТЬ ЕЩЁ РАЗ ЗА 100 ⭐
+        </button>
 
 
-    <div
-        id="result"
-        class="result hidden"
-    >
-
-        <div class="result-title">
-            ТЕБЕ ВЫПАЛО
+        <div class="footer-note">
+            <span>◈</span>
+            CRYPTO ROULETTE
         </div>
 
-        <div
-            id="resultValue"
-            class="result-value"
-        >
+    </section>
+
+
+
+    <!-- ROULETTE -->
+
+    <section id="rouletteScreen" class="screen">
+
+        <div class="screen-header">
+            <button id="backButton" class="back-button">‹</button>
+
+            <div>
+                <div class="header-title">CRYPTO ROULETTE</div>
+                <div class="header-subtitle">Удачи!</div>
+            </div>
         </div>
 
-    </div>
+
+        <div class="roulette-title">
+            КРУТИМ РУЛЕТКУ
+        </div>
+
+
+        <div class="roulette-wrapper">
+
+            <div class="pointer"></div>
+
+            <div id="wheel" class="wheel">
+
+                <div class="wheel-center">
+                    <span>◎</span>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div id="spinStatus" class="spin-status">
+            Готовы?
+        </div>
+
+
+        <div class="progress-container">
+            <div id="progressBar" class="progress-bar"></div>
+        </div>
+
+
+        <button id="spinAgainButton" class="secondary-button roulette-repeat">
+            ☆ КРУТИТЬ ЕЩЁ РАЗ ЗА 100 ⭐
+        </button>
+
+    </section>
+
+
+
+    <!-- RESULT -->
+
+    <section id="resultScreen" class="screen">
+
+        <div class="result-content">
+
+            <div class="result-label">
+                ПОЗДРАВЛЯЕМ!
+            </div>
+
+            <div class="result-subtitle">
+                Ты выиграл
+            </div>
+
+
+            <div id="resultPrize" class="result-prize">
+
+                <div id="resultIcon" class="result-icon">
+                    🏆
+                </div>
+
+                <div id="resultName" class="result-name">
+                    $1,000
+                </div>
+
+                <div id="resultDescription" class="result-description">
+                    Заглавный приз
+                </div>
+
+            </div>
+
+
+            <button id="claimButton" class="primary-button claim-button">
+                🎁 ЗАБРАТЬ ПРИЗ
+            </button>
+
+
+            <button id="repeatResultButton" class="secondary-button">
+                ☆ КРУТИТЬ ЕЩЁ РАЗ ЗА 100 ⭐
+            </button>
+
+        </div>
+
+    </section>
+
 
 </div>
 
@@ -102,5 +199,4 @@
 <script src="app.js"></script>
 
 </body>
-
 </html>
