@@ -22,16 +22,32 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 
-# ==============================
+# ============================================================
 # DATABASE
-# ==============================
+# ============================================================
+
+def get_db():
+    return sqlite3.connect(DB_PATH)
+
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db()
 
     conn.execute("""
         CREATE TABLE IF NOT EXISTS free_spins (
-            user_id INTEGER PRIMARY KEY
+            user_id INTEGER PRIMARY KEY,
+            used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            payload TEXT NOT NULL,
+            amount INTEGER NOT NULL,
+            currency TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
@@ -39,11 +55,11 @@ def init_db():
     conn.close()
 
 
-def has_free_spin(user_id):
-    conn = sqlite3.connect(DB_PATH)
+def has_free_spin_been_used(user_id):
+    conn = get_db()
 
     result = conn.execute(
-        "SELECT user_id FROM free_spins WHERE user_id = ?",
+        "SELECT 1 FROM free_spins WHERE user_id = ?",
         (user_id,)
     ).fetchone()
 
@@ -52,33 +68,97 @@ def has_free_spin(user_id):
     return result is not None
 
 
-def use_free_spin(user_id):
-    conn = sqlite3.connect(DB_PATH)
+def mark_free_spin_used(user_id):
+    conn = get_db()
 
-    conn.execute(
-        "INSERT OR IGNORE INTO free_spins (user_id) VALUES (?)",
+    cursor = conn.execute(
+        """
+        INSERT OR IGNORE INTO free_spins (user_id)
+        VALUES (?)
+        """,
         (user_id,)
     )
 
     conn.commit()
+    inserted = cursor.rowcount == 1
+
     conn.close()
 
+    return inserted
 
-# ==============================
+
+# ============================================================
 # BOT
-# ==============================
+# ============================================================
 
 @dp.message(CommandStart())
 async def start(message: Message):
     await message.answer(
         "🎰 CRYPTO ROULETTE\n\n"
-        "Открой Mini App и прокрути рулетку."
+        "Открой Mini App и используй свой бесплатный прокрут."
     )
 
 
-# ==============================
+# ============================================================
+# FREE SPIN
+# ============================================================
+
+async def use_free_spin(request):
+    try:
+        data = await request.json()
+
+        user_id = data.get("user_id")
+
+        if not user_id:
+            return web.json_response(
+                {
+                    "ok": False,
+                    "error": "Telegram user_id не найден"
+                },
+                status=400
+            )
+
+        user_id = int(user_id)
+
+        # Бесплатный прокрут можно использовать только один раз
+        success = mark_free_spin_used(user_id)
+
+        if not success:
+            return web.json_response(
+                {
+                    "ok": False,
+                    "error": "Бесплатный прокрут уже использован"
+                },
+                status=409
+            )
+
+        print(
+            "FREE SPIN USED:",
+            user_id
+        )
+
+        return web.json_response({
+            "ok": True
+        })
+
+    except Exception as e:
+        print(
+            "FREE SPIN ERROR:",
+            repr(e)
+        )
+
+        return web.json_response(
+            {
+                "ok": False,
+                "error": "Ошибка сервера"
+            },
+            status=500
+        )
+
+
+# ============================================================
 # CREATE STARS INVOICE
-# ==============================
+# ============================================================
 
 async def create_invoice(request):
     try:
@@ -88,23 +168,32 @@ async def create_invoice(request):
 
         if not user_id:
             return web.json_response(
-                {"error": "Telegram user_id не найден"},
+                {
+                    "ok": False,
+                    "error": "Telegram user_id не найден"
+                },
                 status=400
             )
 
         user_id = int(user_id)
 
-        # Пользователь должен сначала использовать бесплатный спин
-        if not has_free_spin(user_id):
+        # Нельзя покупать дополнительный прокрут,
+        # пока пользователь не использовал бесплатный.
+        if not has_free_spin_been_used(user_id):
             return web.json_response(
-                {"error": "Сначала используй бесплатную прокрутку"},
+                {
+                    "ok": False,
+                    "error": "Сначала используй бесплатную прокрутку"
+                },
                 status=400
             )
+
+        payload = f"roulette:{user_id}"
 
         invoice_url = await bot.create_invoice_link(
             title="Прокрутка рулетки",
             description="Дополнительная прокрутка CRYPTO ROULETTE",
-            payload=f"roulette:{user_id}",
+            payload=payload,
             currency="XTR",
             prices=[
                 LabeledPrice(
@@ -115,42 +204,81 @@ async def create_invoice(request):
             provider_token=""
         )
 
+        print(
+            "INVOICE CREATED:",
+            user_id,
+            invoice_url
+        )
+
         return web.json_response({
+            "ok": True,
             "url": invoice_url
         })
 
     except Exception as e:
-        print("CREATE INVOICE ERROR:", repr(e))
+        print(
+            "CREATE INVOICE ERROR:",
+            repr(e)
+        )
 
         return web.json_response(
-            {"error": str(e)},
+            {
+                "ok": False,
+                "error": str(e)
+            },
             status=500
         )
 
 
-# ==============================
+# ============================================================
 # PRE-CHECKOUT
-# ==============================
+# ============================================================
 
 @dp.pre_checkout_query()
 async def pre_checkout(query: PreCheckoutQuery):
     try:
-        await query.answer(ok=True)
-
         print(
             "PRE CHECKOUT:",
             query.from_user.id,
             query.total_amount,
-            query.currency
+            query.currency,
+            query.invoice_payload
         )
 
+        if query.currency != "XTR":
+            await query.answer(
+                ok=False,
+                error_message="Неверная валюта платежа."
+            )
+            return
+
+        if query.total_amount != 100:
+            await query.answer(
+                ok=False,
+                error_message="Неверная стоимость прокрутки."
+            )
+            return
+
+        await query.answer(ok=True)
+
     except Exception as e:
-        print("PRE CHECKOUT ERROR:", repr(e))
+        print(
+            "PRE CHECKOUT ERROR:",
+            repr(e)
+        )
+
+        try:
+            await query.answer(
+                ok=False,
+                error_message="Ошибка проверки платежа."
+            )
+        except Exception:
+            pass
 
 
-# ==============================
+# ============================================================
 # SUCCESSFUL PAYMENT
-# ==============================
+# ============================================================
 
 @dp.message()
 async def successful_payment(message: Message):
@@ -160,24 +288,54 @@ async def successful_payment(message: Message):
 
     payment = message.successful_payment
 
+    user_id = message.from_user.id
+
     print(
         "PAYMENT SUCCESS:",
-        message.from_user.id,
+        user_id,
         payment.total_amount,
-        payment.currency
+        payment.currency,
+        payment.invoice_payload
     )
+
+    conn = get_db()
+
+    conn.execute(
+        """
+        INSERT INTO payments (
+            user_id,
+            payload,
+            amount,
+            currency
+        )
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            payment.invoice_payload,
+            payment.total_amount,
+            payment.currency
+        )
+    )
+
+    conn.commit()
+    conn.close()
 
     await message.answer(
-        "✅ Оплата прошла успешно!"
+        "✅ Оплата прошла успешно!\n\n"
+        "Возвращайся в Mini App — прокрутка доступна."
     )
 
 
-# ==============================
-# WEB SERVER
-# ==============================
+# ============================================================
+# WEB
+# ============================================================
 
 async def health(request):
-    return web.Response(text="OK")
+    return web.json_response({
+        "ok": True,
+        "service": "crypto-roulette"
+    })
 
 
 async def index(request):
@@ -198,17 +356,43 @@ async def style_css(request):
     )
 
 
+# ============================================================
+# WEB SERVER
+# ============================================================
+
 async def start_web_server():
 
     app = web.Application()
 
-    app.router.add_get("/", index)
-    app.router.add_get("/index.html", index)
+    app.router.add_get(
+        "/",
+        index
+    )
 
-    app.router.add_get("/app.js", app_js)
-    app.router.add_get("/style.css", style_css)
+    app.router.add_get(
+        "/index.html",
+        index
+    )
 
-    app.router.add_get("/health", health)
+    app.router.add_get(
+        "/app.js",
+        app_js
+    )
+
+    app.router.add_get(
+        "/style.css",
+        style_css
+    )
+
+    app.router.add_get(
+        "/health",
+        health
+    )
+
+    app.router.add_post(
+        "/use-free-spin",
+        use_free_spin
+    )
 
     app.router.add_post(
         "/create-invoice",
@@ -236,15 +420,18 @@ async def start_web_server():
     )
 
 
-# ==============================
+# ============================================================
 # MAIN
-# ==============================
+# ============================================================
 
 async def main():
 
     init_db()
 
+    print("================================")
+    print("🎰 CRYPTO ROULETTE")
     print("BOT STARTING...")
+    print("================================")
 
     await start_web_server()
 
