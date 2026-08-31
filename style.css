@@ -10,7 +10,7 @@ body {
     width: 100%;
     min-height: 100%;
     background: #050608;
-    color: #fff;
+    color: #ffffff;
     font-family: Arial, Helvetica, sans-serif;
     overflow-x: hidden;
 }
@@ -32,6 +32,11 @@ button:active {
     transform: scale(0.97);
 }
 
+button:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
 .app {
     width: 100%;
     min-height: 100vh;
@@ -49,6 +54,9 @@ button:active {
     flex-direction: column;
 }
 
+
+/* HOME */
+
 #homeScreen {
     align-items: center;
 }
@@ -63,64 +71,94 @@ button:active {
     width: 64px;
     height: 64px;
     margin: 0 auto 14px;
+
     display: flex;
     align-items: center;
     justify-content: center;
+
     border-radius: 20px;
-    background: linear-gradient(135deg, #ffcc00, #ff8a00);
+
+    background: linear-gradient(
+        135deg,
+        #ffcc00,
+        #ff8a00
+    );
+
     color: #050608;
     font-size: 36px;
     font-weight: 900;
-    box-shadow: 0 10px 35px rgba(255, 174, 0, 0.25);
+
+    box-shadow:
+        0 10px 35px rgba(255, 174, 0, 0.25);
 }
 
 .brand-title {
     display: flex;
     flex-direction: column;
     gap: 2px;
+
     font-size: 28px;
     line-height: 1;
     letter-spacing: 2px;
 }
 
 .brand-title span {
-    color: #fff;
+    color: #ffffff;
     font-weight: 800;
 }
 
 .brand-title strong {
-    background: linear-gradient(90deg, #ffcc00, #ff7a00, #ff3d00);
+    background: linear-gradient(
+        90deg,
+        #ffcc00,
+        #ff7a00,
+        #ff3d00
+    );
+
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+
     font-weight: 900;
 }
 
 .brand p {
     margin: 12px 0 25px;
+
     color: #8f8f8f;
     font-size: 14px;
 }
 
+
+/* PRIZES */
+
 .prizes {
     width: 100%;
     max-width: 430px;
+
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
+
     margin-bottom: 22px;
 }
 
 .prize-card {
     min-height: 115px;
+
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+
     padding: 14px 8px;
+
     border-radius: 18px;
+
     background: #0d0f13;
+
     border: 1px solid rgba(255, 255, 255, 0.07);
+
     text-align: center;
 }
 
@@ -141,63 +179,96 @@ button:active {
 
 .prize-description {
     margin-top: 5px;
+
     color: #777b82;
     font-size: 11px;
 }
+
+
+/* BUTTONS */
 
 .primary-button,
 .secondary-button {
     width: 100%;
     max-width: 430px;
+
     min-height: 58px;
+
     border-radius: 17px;
+
     font-size: 15px;
     font-weight: 900;
     letter-spacing: 0.5px;
-    transition: transform 0.15s ease, opacity 0.2s ease;
+
+    transition:
+        transform 0.15s ease,
+        opacity 0.2s ease;
 }
 
 .primary-button {
-    background: linear-gradient(135deg, #ffcc00, #ff8a00);
+    background: linear-gradient(
+        135deg,
+        #ffcc00,
+        #ff8a00
+    );
+
     color: #08090b;
-    box-shadow: 0 12px 30px rgba(255, 174, 0, 0.2);
+
+    box-shadow:
+        0 12px 30px rgba(255, 174, 0, 0.20);
 }
 
 .secondary-button {
     margin-top: 10px;
+
     background: #111318;
-    color: #fff;
+
+    color: #ffffff;
+
     border: 1px solid rgba(255, 255, 255, 0.09);
 }
 
-.primary-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+.primary-button span,
+.secondary-button span {
+    margin-right: 7px;
 }
 
 .footer-note {
     margin-top: auto;
     padding-top: 30px;
+
     color: #44474d;
+
     font-size: 11px;
     letter-spacing: 2px;
 }
 
+
+/* HEADER */
+
 .screen-header {
     width: 100%;
+
     display: flex;
     align-items: center;
+
     gap: 13px;
+
     margin-bottom: 25px;
 }
 
 .back-button {
     width: 42px;
     height: 42px;
+
     border-radius: 13px;
+
     background: #111318;
-    color: #fff;
+
+    color: #ffffff;
+
     border: 1px solid rgba(255, 255, 255, 0.08);
+
     font-size: 30px;
     line-height: 1;
 }
@@ -210,28 +281,47 @@ button:active {
 
 .header-subtitle {
     margin-top: 3px;
+
     color: #777b82;
+
     font-size: 12px;
 }
 
+
+/* ROULETTE */
+
 .roulette-title {
     width: 100%;
+
     text-align: center;
+
     margin-bottom: 22px;
+
     font-size: 20px;
     font-weight: 900;
     letter-spacing: 1px;
-    background: linear-gradient(90deg, #fff, #ffcc00, #fff);
+
+    background: linear-gradient(
+        90deg,
+        #ffffff,
+        #ffcc00,
+        #ffffff
+    );
+
     -webkit-background-clip: text;
     background-clip: text;
+
     color: transparent;
 }
 
 .roulette-wrapper {
     position: relative;
+
     width: 100%;
     max-width: 330px;
+
     margin: 0 auto 25px;
+
     display: flex;
     align-items: center;
     justify-content: center;
@@ -239,24 +329,40 @@ button:active {
 
 .pointer {
     position: absolute;
+
     top: -10px;
     left: 50%;
+
     transform: translateX(-50%);
-    z-index: 50;
+
+    z-index: 100;
+
     width: 0;
     height: 0;
+
     border-left: 13px solid transparent;
     border-right: 13px solid transparent;
-    border-top: 28px solid #fff;
-    filter: drop-shadow(0 3px 8px rgba(255,255,255,0.3));
+    border-top: 28px solid #ffffff;
+
+    filter:
+        drop-shadow(
+            0 3px 8px rgba(255, 255, 255, 0.3)
+        );
 }
+
+
+/* WHEEL */
 
 .wheel {
     position: relative;
+
     width: 290px;
     height: 290px;
+
     flex: 0 0 290px;
+
     border-radius: 50%;
+
     background: conic-gradient(
         #ffcc00 0deg 72deg,
         #8b5cf6 72deg 144deg,
@@ -264,29 +370,52 @@ button:active {
         #00c853 216deg 288deg,
         #2196f3 288deg 360deg
     );
+
     border: 8px solid #181a1f;
+
     box-shadow:
-        0 0 0 2px rgba(255,255,255,0.05),
-        0 15px 50px rgba(0,0,0,0.55),
-        inset 0 0 35px rgba(0,0,0,0.35);
+        0 0 0 2px rgba(255, 255, 255, 0.05),
+        0 15px 50px rgba(0, 0, 0, 0.55),
+        inset 0 0 35px rgba(0, 0, 0, 0.35);
+
     transform: rotate(0deg);
-    transform-origin: center;
-    transition: transform 5.5s cubic-bezier(0.12, 0.72, 0.18, 1);
+
+    transform-origin: center center;
+
+    transition:
+        transform 5.5s cubic-bezier(
+            0.12,
+            0.72,
+            0.18,
+            1
+        );
+
+    will-change: transform;
+
     overflow: hidden;
+
     z-index: 5;
 }
+
+
+/* LABELS */
 
 .wheel-label {
     position: absolute;
 
+    width: 92px;
+    height: 65px;
+
     left: 50%;
     top: 50%;
 
-    width: 82px;
-    min-height: 58px;
+    margin-left: -46px;
+    margin-top: -32.5px;
 
     display: flex;
+
     flex-direction: column;
+
     align-items: center;
     justify-content: center;
 
@@ -300,22 +429,30 @@ button:active {
     line-height: 1.15;
 
     text-shadow:
-        0 2px 5px rgba(0, 0, 0, 0.8);
+        0 2px 5px rgba(0, 0, 0, 0.85);
 
     pointer-events: none;
 
-    z-index: 6;
+    z-index: 10;
 
-    transform-origin: center center;
+    /*
+       Каждая надпись находится в центре
+       своего сектора.
+
+       rotate(угол)
+       translateY(-88px)
+
+       Внутренний rotate(-угол)
+       возвращает текст прямо.
+    */
 
     transform:
-        translate(-50%, -50%)
         rotate(var(--angle))
-        translateY(-82px)
+        translateY(-88px)
         rotate(calc(var(--angle) * -1));
 }
 
-.label-icon {
+.wheel-label .label-icon {
     display: block;
 
     font-size: 22px;
@@ -325,194 +462,206 @@ button:active {
     margin-bottom: 3px;
 }
 
-.label-text {
+.wheel-label .label-text {
     display: block;
 
-    width: 82px;
+    width: 92px;
 
     text-align: center;
 }
 
 
-/* ==========================================
-   LABEL POSITIONS
-========================================== */
-
-.wheel-label:nth-of-type(2) {
-    --angle: 36deg;
-}
-
-.wheel-label:nth-of-type(3) {
-    --angle: 108deg;
-}
-
-.wheel-label:nth-of-type(4) {
-    --angle: 180deg;
-}
-
-.wheel-label:nth-of-type(5) {
-    --angle: 252deg;
-}
-
-.wheel-label:nth-of-type(6) {
-    --angle: 324deg;
-}
-
-
-/* ==========================================
-   MOBILE
-========================================== */
-
-@media (max-width: 360px) {
-
-    .wheel-label {
-        width: 70px;
-        min-height: 50px;
-
-        font-size: 9px;
-
-        transform:
-            translate(-50%, -50%)
-            rotate(var(--angle))
-            translateY(-70px)
-            rotate(calc(var(--angle) * -1));
-    }
-
-    .label-icon {
-        font-size: 19px;
-        line-height: 21px;
-        margin-bottom: 2px;
-    }
-
-    .label-text {
-        width: 70px;
-    }
-}
+/* FIVE SECTORS */
 
 .wheel-label.one {
-    top: 28px;
-    left: 94px;
+    --angle: 0deg;
 }
 
 .wheel-label.two {
-    top: 90px;
-    right: 10px;
+    --angle: 72deg;
 }
 
 .wheel-label.three {
-    bottom: 36px;
-    right: 14px;
+    --angle: 144deg;
 }
 
 .wheel-label.four {
-    bottom: 36px;
-    left: 14px;
+    --angle: 216deg;
 }
 
 .wheel-label.five {
-    top: 90px;
-    left: 10px;
+    --angle: 288deg;
 }
+
+
+/* CENTER */
 
 .wheel-center {
     position: absolute;
-    z-index: 20;
+
+    z-index: 30;
+
     left: 50%;
     top: 50%;
+
     width: 68px;
     height: 68px;
+
     transform: translate(-50%, -50%);
+
     display: flex;
+
     align-items: center;
     justify-content: center;
+
     border-radius: 50%;
+
     background: #090a0d;
+
     border: 5px solid #1e2026;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.45);
+
+    box-shadow:
+        0 5px 20px rgba(0, 0, 0, 0.45);
+
     color: #ffcc00;
+
     font-size: 30px;
+
     pointer-events: none;
 }
 
+
+/* STATUS */
+
 .spin-status {
     width: 100%;
+
     margin: 5px 0 12px;
+
     text-align: center;
+
     color: #a9adb5;
+
     font-size: 13px;
     font-weight: 700;
 }
 
+
+/* PROGRESS */
+
 .progress-container {
     width: 100%;
     max-width: 430px;
+
     height: 5px;
+
     margin: 0 auto 20px;
+
     border-radius: 10px;
+
     background: #17191e;
+
     overflow: hidden;
 }
 
 .progress-bar {
-    width: 0;
+    width: 0%;
     height: 100%;
+
     border-radius: 10px;
-    background: linear-gradient(90deg, #ffcc00, #ff7a00);
+
+    background: linear-gradient(
+        90deg,
+        #ffcc00,
+        #ff7a00
+    );
+
+    transition:
+        width 5.5s linear;
 }
+
+
+/* RESULT */
 
 #resultScreen {
     align-items: center;
     justify-content: center;
+
     text-align: center;
 }
 
 .result-content {
     width: 100%;
     max-width: 430px;
+
     display: flex;
+
     flex-direction: column;
+
     align-items: center;
 }
 
 .result-label {
     margin-bottom: 8px;
+
     font-size: 27px;
     font-weight: 900;
+
     letter-spacing: 1px;
-    background: linear-gradient(90deg, #ffcc00, #ff7a00, #ffcc00);
+
+    background: linear-gradient(
+        90deg,
+        #ffcc00,
+        #ff7a00,
+        #ffcc00
+    );
+
     -webkit-background-clip: text;
     background-clip: text;
+
     color: transparent;
 }
 
 .result-subtitle {
     color: #777b82;
+
     font-size: 14px;
 }
 
 .result-prize {
     width: 100%;
+
     margin: 28px 0;
+
     padding: 30px 20px;
+
     border-radius: 25px;
+
     background: #0d0f13;
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.30);
 }
 
 .result-icon {
     font-size: 58px;
+
     margin-bottom: 12px;
 }
 
 .result-name {
     font-size: 29px;
+
     font-weight: 900;
 }
 
 .result-description {
     margin-top: 8px;
+
     color: #858990;
+
     font-size: 13px;
 }
 
@@ -520,7 +669,11 @@ button:active {
     margin-bottom: 10px;
 }
 
+
+/* MOBILE */
+
 @media (max-width: 360px) {
+
     .app {
         padding-left: 12px;
         padding-right: 12px;
@@ -533,37 +686,32 @@ button:active {
     .wheel {
         width: 255px;
         height: 255px;
+
         flex-basis: 255px;
     }
 
     .wheel-label {
         width: 72px;
-        height: 48px;
+        height: 52px;
+
+        margin-left: -36px;
+        margin-top: -26px;
+
         font-size: 9px;
+
+        transform:
+            rotate(var(--angle))
+            translateY(-76px)
+            rotate(calc(var(--angle) * -1));
     }
 
-    .wheel-label.one {
-        top: 25px;
-        left: 84px;
+    .wheel-label .label-icon {
+        font-size: 19px;
+        line-height: 21px;
+        margin-bottom: 2px;
     }
 
-    .wheel-label.two {
-        top: 78px;
-        right: 5px;
-    }
-
-    .wheel-label.three {
-        bottom: 30px;
-        right: 5px;
-    }
-
-    .wheel-label.four {
-        bottom: 30px;
-        left: 5px;
-    }
-
-    .wheel-label.five {
-        top: 78px;
-        left: 5px;
+    .wheel-label .label-text {
+        width: 72px;
     }
 }
