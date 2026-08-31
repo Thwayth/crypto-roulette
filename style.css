@@ -278,20 +278,115 @@ button:active {
 
 .wheel-label {
     position: absolute;
-    z-index: 10;
-    width: 86px;
-    height: 55px;
+
+    left: 50%;
+    top: 50%;
+
+    width: 82px;
+    min-height: 58px;
+
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    flex-direction: column;
+
     text-align: center;
-    color: #fff;
+
+    color: #ffffff;
+
     font-size: 11px;
-    line-height: 1.15;
     font-weight: 900;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+
+    line-height: 1.15;
+
+    text-shadow:
+        0 2px 5px rgba(0, 0, 0, 0.8);
+
     pointer-events: none;
+
+    z-index: 6;
+
+    transform-origin: center center;
+
+    transform:
+        translate(-50%, -50%)
+        rotate(var(--angle))
+        translateY(-82px)
+        rotate(calc(var(--angle) * -1));
+}
+
+.label-icon {
+    display: block;
+
+    font-size: 22px;
+
+    line-height: 24px;
+
+    margin-bottom: 3px;
+}
+
+.label-text {
+    display: block;
+
+    width: 82px;
+
+    text-align: center;
+}
+
+
+/* ==========================================
+   LABEL POSITIONS
+========================================== */
+
+.wheel-label:nth-of-type(2) {
+    --angle: 36deg;
+}
+
+.wheel-label:nth-of-type(3) {
+    --angle: 108deg;
+}
+
+.wheel-label:nth-of-type(4) {
+    --angle: 180deg;
+}
+
+.wheel-label:nth-of-type(5) {
+    --angle: 252deg;
+}
+
+.wheel-label:nth-of-type(6) {
+    --angle: 324deg;
+}
+
+
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width: 360px) {
+
+    .wheel-label {
+        width: 70px;
+        min-height: 50px;
+
+        font-size: 9px;
+
+        transform:
+            translate(-50%, -50%)
+            rotate(var(--angle))
+            translateY(-70px)
+            rotate(calc(var(--angle) * -1));
+    }
+
+    .label-icon {
+        font-size: 19px;
+        line-height: 21px;
+        margin-bottom: 2px;
+    }
+
+    .label-text {
+        width: 70px;
+    }
 }
 
 .wheel-label.one {
