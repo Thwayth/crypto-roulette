@@ -1,179 +1,164 @@
 <!DOCTYPE html>
-
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-```
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
->
+    <title>Crypto Roulette</title>
 
-<title>Crypto Roulette</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-<link rel="stylesheet" href="/style.css">
-```
-
+    <link rel="stylesheet" href="/style.css">
 </head>
 
 <body>
 
 <div class="app">
 
-```
-<section id="homeScreen" class="screen active">
+    <section id="homeScreen" class="screen active">
 
-    <div class="brand">
+        <div class="brand">
 
-        <div class="brand-icon">
-            ◎
+            <div class="brand-icon">◎</div>
+
+            <div class="brand-title">
+                <span>CRYPTO</span>
+                <strong>ROULETTE</strong>
+            </div>
+
+            <p>Испытай удачу и получи ценный приз</p>
+
         </div>
 
-        <div class="brand-title">
-            <span>CRYPTO</span>
-            <strong>ROULETTE</strong>
+        <div class="prizes">
+
+            <div class="prize-card gold">
+                <div class="prize-icon">🏆</div>
+                <div class="prize-name">$1,000</div>
+                <div class="prize-description">Главный приз</div>
+            </div>
+
+            <div class="prize-card purple">
+                <div class="prize-icon">💎</div>
+                <div class="prize-name">VIP КАНАЛ</div>
+                <div class="prize-description">Доступ в VIP</div>
+            </div>
+
+            <div class="prize-card orange">
+                <div class="prize-icon">🔥</div>
+                <div class="prize-name">МАРАФОН</div>
+                <div class="prize-description">Торговый марафон</div>
+            </div>
+
+            <div class="prize-card green">
+                <div class="prize-icon">📈</div>
+                <div class="prize-name">СИГНАЛ</div>
+                <div class="prize-description">НА 300%</div>
+            </div>
+
+            <div class="prize-card blue">
+                <div class="prize-icon">🎓</div>
+                <div class="prize-name">ОБУЧЕНИЕ</div>
+                <div class="prize-description">Личное обучение</div>
+            </div>
+
         </div>
 
-        <p>
-            Испытай удачу и получи ценный приз
-        </p>
-
-    </div>
-
-    <div class="prizes">
-
-        <div class="prize-card gold">
-            <div class="prize-icon">🏆</div>
-            <div class="prize-name">$1,000</div>
-            <div class="prize-description">Шанс 0.0001%</div>
-        </div>
-
-        <div class="prize-card purple">
-            <div class="prize-icon">💎</div>
-            <div class="prize-name">VIP КАНАЛ</div>
-            <div class="prize-description">Доступ в VIP</div>
-        </div>
-
-        <div class="prize-card orange">
-            <div class="prize-icon">🔥</div>
-            <div class="prize-name">МАРАФОН</div>
-            <div class="prize-description">Торговый марафон</div>
-        </div>
-
-        <div class="prize-card green">
-            <div class="prize-icon">📈</div>
-            <div class="prize-name">СИГНАЛ</div>
-            <div class="prize-description">НА 300%</div>
-        </div>
-
-        <div class="prize-card blue">
-            <div class="prize-icon">🎓</div>
-            <div class="prize-name">ЛИЧНОЕ ОБУЧЕНИЕ</div>
-            <div class="prize-description">Персональное обучение</div>
-        </div>
-
-    </div>
-
-    <button id="spinButton" class="primary-button">
-        <span>◎</span>
-        КРУТИТЬ БЕСПЛАТНО
-    </button>
-
-    <div class="footer-note">
-        ◈ CRYPTO ROULETTE
-    </div>
-
-</section>
-
-
-<section id="rouletteScreen" class="screen">
-
-    <div class="screen-header">
-
-        <button id="backButton" class="back-button">
-            ‹
+        <button id="spinButton" class="primary-button">
+            <span>◎</span> КРУТИТЬ
         </button>
 
-        <div>
-            <div class="header-title">
-                CRYPTO ROULETTE
-            </div>
-
-            <div class="header-subtitle">
-                Удачи!
-            </div>
+        <div class="footer-note">
+            ◈ CRYPTO ROULETTE
         </div>
 
-    </div>
-
-    <div class="roulette-title">
-        КРУТИМ РУЛЕТКУ
-    </div>
-
-    <div class="roulette-wrapper">
-
-        <div class="pointer"></div>
-
-        <div id="wheel" class="wheel">
-
-            <div class="wheel-center">
-                ◎
-            </div>
-
-        </div>
-
-    </div>
-
-    <div id="spinStatus" class="spin-status">
-        Готовы?
-    </div>
-
-    <div class="progress-container">
-        <div id="progressBar" class="progress-bar"></div>
-    </div>
-
-</section>
+    </section>
 
 
-<section id="resultScreen" class="screen">
+    <section id="rouletteScreen" class="screen">
 
-    <div class="result-content">
+        <div class="screen-header">
 
-        <div class="result-label">
-            ПОЗДРАВЛЯЕМ!
-        </div>
+            <button id="backButton" class="back-button">
+                ‹
+            </button>
 
-        <div class="result-subtitle">
-            Ты выиграл
-        </div>
+            <div>
+                <div class="header-title">
+                    CRYPTO ROULETTE
+                </div>
 
-        <div id="resultPrize" class="result-prize">
-
-            <div id="resultIcon" class="result-icon">
-                🏆
-            </div>
-
-            <div id="resultName" class="result-name">
-                $1,000
-            </div>
-
-            <div id="resultDescription" class="result-description">
-                Заглавный приз
+                <div class="header-subtitle">
+                    Удачи!
+                </div>
             </div>
 
         </div>
 
-        <button id="claimButton" class="primary-button">
-            🎁 ЗАБРАТЬ НАГРАДУ
-        </button>
+        <div class="roulette-title">
+            КРУТИМ РУЛЕТКУ
+        </div>
 
-    </div>
+        <div class="roulette-wrapper">
 
-</section>
-```
+            <div class="pointer"></div>
+
+            <div id="wheel" class="wheel">
+
+                <div class="wheel-center">
+                    ◎
+                </div>
+
+            </div>
+
+        </div>
+
+        <div id="spinStatus" class="spin-status">
+            Готовы?
+        </div>
+
+        <div class="progress-container">
+            <div id="progressBar" class="progress-bar"></div>
+        </div>
+
+    </section>
+
+
+    <section id="resultScreen" class="screen">
+
+        <div class="result-content">
+
+            <div class="result-label">
+                ПОЗДРАВЛЯЕМ!
+            </div>
+
+            <div class="result-subtitle">
+                Ты выиграл
+            </div>
+
+            <div class="result-prize">
+
+                <div id="resultIcon" class="result-icon">
+                    🏆
+                </div>
+
+                <div id="resultName" class="result-name">
+                    $1,000
+                </div>
+
+                <div id="resultDescription" class="result-description">
+                    Главный приз
+                </div>
+
+            </div>
+
+            <button id="claimButton" class="primary-button claim-button">
+                🎁 ЗАБРАТЬ ПРИЗ
+            </button>
+
+        </div>
+
+    </section>
 
 </div>
 
