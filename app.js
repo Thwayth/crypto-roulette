@@ -90,7 +90,9 @@ function showScreen(screen) {
         item.classList.remove("active");
     });
 
-    screen.classList.add("active");
+    if (screen) {
+        screen.classList.add("active");
+    }
 
     window.scrollTo(0, 0);
 }
@@ -100,11 +102,8 @@ function createWheelLabels() {
         return;
     }
 
-    const oldLabels =
-        wheel.querySelectorAll(".wheel-label");
-
-    oldLabels.forEach(function(label) {
-        label.remove();
+    wheel.querySelectorAll(".wheel-label").forEach(function(item) {
+        item.remove();
     });
 
     const labels = [
@@ -116,22 +115,16 @@ function createWheelLabels() {
     ];
 
     labels.forEach(function(item) {
+        const label = document.createElement("div");
 
-        const label =
-            document.createElement("div");
-
-        label.className =
-            "wheel-label " + item[0];
-
-        label.innerHTML =
-            item[1];
+        label.className = "wheel-label " + item[0];
+        label.innerHTML = item[1];
 
         wheel.appendChild(label);
     });
 }
 
 function startProgress() {
-
     if (!progressBar) {
         return;
     }
@@ -142,45 +135,42 @@ function startProgress() {
     void progressBar.offsetWidth;
 
     requestAnimationFrame(function() {
-
-        progressBar.style.transition =
-            "width 5.5s linear";
-
-        progressBar.style.width =
-            "100%";
+        progressBar.style.transition = "width 5.5s linear";
+        progressBar.style.width = "100%";
     });
 }
 
 function animateWheel(prize) {
-
-    const index =
-        prizes.findIndex(function(item) {
-            return item.id === prize.id;
-        });
-
-    if (index === -1) {
+    if (!wheel) {
         return;
     }
 
-    const sector =
-        360 / prizes.length;
+    const prizeIndex = prizes.findIndex(function(item) {
+        return item.id === prize.id;
+    });
 
-    const center =
-        index * sector + sector / 2;
+    if (prizeIndex === -1) {
+        return;
+    }
 
-    const target =
-        360 - center;
+    const sector = 360 / prizes.length;
 
-    const offset =
+    const sectorCenter =
+        prizeIndex * sector + sector / 2;
+
+    const targetAngle =
+        360 - sectorCenter;
+
+    const randomOffset =
         (Math.random() - 0.5) *
         sector *
         0.35;
 
-    const rotation =
+    const newRotation =
         currentRotation +
         360 * 7 +
-        target +
-        offset;
+        targetAngle +
+        randomOffset;
 
     wheel.style.transition = "none";
 
@@ -192,17 +182,18 @@ function animateWheel(prize) {
     void wheel.offsetWidth;
 
     requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
 
-        wheel.style.transition =
-            "transform 5.5s cubic-bezier(0.12, 0.72, 0.18, 1)";
+            wheel.style.transition =
+                "transform 5.5s cubic-bezier(0.12, 0.72, 0.18, 1)";
 
-        wheel.style.transform =
-            "rotate(" +
-            rotation +
-            "deg)";
+            wheel.style.transform =
+                "rotate(" +
+                newRotation +
+                "deg)";
 
-        currentRotation =
-            rotation;
+            currentRotation = newRotation;
+        });
     });
 }
 
@@ -242,31 +233,30 @@ async function spinRoulette() {
 
     try {
 
-        const response =
-            await fetch("/spin", {
-                method: "POST",
+        const response = await fetch("/spin", {
+            method: "POST",
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+            headers: {
+                "Content-Type": "application/json"
+            },
 
-                body: JSON.stringify({
-                    init_data:
-                        tg.initData || "",
+            body: JSON.stringify({
+                user_id: user.id,
+                username: user.username || "",
+                first_name: user.first_name || "",
+                init_data: tg.initData || ""
+            })
+        });
 
-                    user_id:
-                        user.id,
+        let data;
 
-                    username:
-                        user.username || "",
-
-                    first_name:
-                        user.first_name || ""
-                })
-            });
-
-        const data =
-            await response.json();
+        try {
+            data = await response.json();
+        } catch (e) {
+            throw new Error(
+                "Сервер вернул неправильный ответ."
+            );
+        }
 
         if (!response.ok || !data.ok) {
 
@@ -307,8 +297,14 @@ async function spinRoulette() {
             return;
         }
 
-        const prize =
-            data.prize;
+        if (!data.prize) {
+
+            throw new Error(
+                "Сервер не вернул награду."
+            );
+        }
+
+        const prize = data.prize;
 
         spinStatus.textContent =
             "РУЛЕТКА КРУТИТСЯ...";
@@ -318,15 +314,13 @@ async function spinRoulette() {
         animateWheel(prize);
 
         setTimeout(function() {
-
             showResult(prize);
-
         }, 5700);
 
     } catch (error) {
 
         console.error(
-            "SPIN ERROR:",
+            "CRYPTO ROULETTE SPIN ERROR:",
             error
         );
 
@@ -346,14 +340,20 @@ function showResult(prize) {
 
     isSpinning = false;
 
-    resultIcon.textContent =
-        prize.icon;
+    if (resultIcon) {
+        resultIcon.textContent =
+            prize.icon;
+    }
 
-    resultName.textContent =
-        prize.name;
+    if (resultName) {
+        resultName.textContent =
+            prize.name;
+    }
 
-    resultDescription.textContent =
-        prize.description;
+    if (resultDescription) {
+        resultDescription.textContent =
+            prize.description;
+    }
 
     haptic("success");
 
@@ -378,32 +378,42 @@ function claimPrize() {
     }
 }
 
-spinButton.addEventListener(
-    "click",
-    spinRoulette
-);
+if (spinButton) {
 
-backButton.addEventListener(
-    "click",
-    function() {
+    spinButton.addEventListener(
+        "click",
+        spinRoulette
+    );
+}
 
-        if (isSpinning) {
-            return;
+if (backButton) {
+
+    backButton.addEventListener(
+        "click",
+        function() {
+
+            if (isSpinning) {
+                return;
+            }
+
+            showScreen(homeScreen);
+
         }
+    );
+}
 
-        showScreen(homeScreen);
-    }
-);
+if (claimButton) {
 
-claimButton.addEventListener(
-    "click",
-    claimPrize
-);
+    claimButton.addEventListener(
+        "click",
+        claimPrize
+    );
+}
 
 createWheelLabels();
 
 showScreen(homeScreen);
 
 console.log(
-    "CRYPTO ROULETTE READY"
+    "🎰 CRYPTO ROULETTE READY"
 );
