@@ -1,6 +1,7 @@
 import os
 import asyncio
 import logging
+from datetime import datetime, timezone, timedelta
 
 from aiohttp import web
 from aiogram import Bot, Dispatcher, Router
@@ -10,18 +11,57 @@ from aiogram.types import Message
 logging.basicConfig(level=logging.INFO)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
 
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN не найден в Environment Variables")
 
+if not ADMIN_CHAT_ID:
+    raise RuntimeError("ADMIN_CHAT_ID не найден в Environment Variables")
+
 router = Router()
+
+last_spins = {}
+
+PRIZES = [
+    {
+        "id": "jackpot",
+        "name": "$1,000",
+        "description": "Заглавный приз",
+        "chance": 0.020
+    },
+    {
+        "id": "vip",
+        "name": "VIP",
+        "description": "VIP-доступ",
+        "chance": 4.980
+    },
+    {
+        "id": "marathon",
+        "name": "МАРАФОН",
+        "description": "Торговый марафон",
+        "chance": 10
+    },
+    {
+        "id": "signal",
+        "name": "СИГНАЛ НА 300%",
+        "description": "Торговый сигнал",
+        "chance": 25
+    },
+    {
+        "id": "training",
+        "name": "ОБУЧЕНИЕ",
+        "description": "Полный доступ",
+        "chance": 60
+    }
+]
 
 
 @router.message(CommandStart())
 async def start_handler(message: Message):
     await message.answer(
         "🎰 CRYPTO ROULETTE\n\n"
-        "Испытай удачу и получи ценный приз!"
+        "Открой рулетку и испытай удачу!"
     )
 
 
@@ -29,20 +69,108 @@ async def health_handler(request):
     return web.Response(text="OK")
 
 
+async def spin_handler(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    user_id = str(data.get("user_id", "")).strip()
+    username = str(data.get("username", "")).strip()
+    first_name = str(data.get("first_name", "")).strip()
+
+    if not user_id:
+        return web.json_response(
+            {
+                "ok": False,
+                "error": "Пользователь не определён"
+            },
+            status=400
+        )
+
+    now = datetime.now(timezone.utc)
+
+    previous_spin = last_spins.get(user_id)
+
+    if previous_spin:
+        next_spin = previous_spin + timedelta(hours=24)
+
+        if now < next_spin:
+            seconds_left = int(
+                (next_spin - now).total_seconds()
+            )
+
+            return web.json_response(
+                {
+                    "ok": False,
+                    "error": "Следующая прокрутка доступна через 24 часа",
+                    "seconds_left": seconds_left
+                },
+                status=429
+            )
+
+    import random
+
+    random_number = random.random() * 100
+    total = 0
+    prize = PRIZES[-1]
+
+    for item in PRIZES:
+        total += item["chance"]
+
+        if random_number < total:
+            prize = item
+            break
+
+    last_spins[user_id] = now
+
+    bot = request.app["bot"]
+
+    admin_message = (
+        "🎰 НОВЫЙ ВЫИГРЫШ\n\n"
+        f"🏆 Приз: {prize['name']}\n"
+        f"📝 {prize['description']}\n\n"
+        f"👤 Имя: {first_name or 'не указано'}\n"
+        f"🔗 Username: @{username if username else 'не указан'}\n"
+        f"🆔 ID: {user_id}"
+    )
+
+    try:
+        await bot.send_message(
+            chat_id=ADMIN_CHAT_ID,
+            text=admin_message
+        )
+    except Exception as error:
+        logging.error(
+            "Не удалось отправить сообщение админу: %s",
+            error
+        )
+
+    return web.json_response(
+        {
+            "ok": True,
+            "prize": prize,
+            "next_spin_seconds": 86400
+        }
+    )
+
+
 async def main():
     bot = Bot(token=BOT_TOKEN)
-    dp = Dispatcher()
-
-    dp.include_router(router)
 
     app = web.Application()
+
+    app["bot"] = bot
+
     app.router.add_get("/", health_handler)
     app.router.add_get("/health", health_handler)
-
-    runner = web.AppRunner(app)
-    await runner.setup()
+    app.router.add_post("/spin", spin_handler)
 
     port = int(os.getenv("PORT", "10000"))
+
+    runner = web.AppRunner(app)
+
+    await runner.setup()
 
     site = web.TCPSite(
         runner,
@@ -52,8 +180,11 @@ async def main():
 
     await site.start()
 
-    logging.info("Web server started on port %s", port)
-    logging.info("Bot started")
+    logging.info("Server started on port %s", port)
+
+    dp = Dispatcher()
+
+    dp.include_router(router)
 
     try:
         await dp.start_polling(bot)
