@@ -15,31 +15,36 @@ const prizes = [
         id: "jackpot",
         icon: "🏆",
         name: "$1,000",
-        description: "Заглавный приз"
+        description: "Заглавный приз",
+        chance: 0.02
     },
     {
         id: "vip",
         icon: "💎",
         name: "VIP",
-        description: "VIP-доступ"
+        description: "VIP-доступ",
+        chance: 4.98
     },
     {
         id: "marathon",
         icon: "🔥",
         name: "МАРАФОН",
-        description: "Торговый марафон"
+        description: "Торговый марафон",
+        chance: 10
     },
     {
         id: "signal",
         icon: "📈",
         name: "СИГНАЛ НА 300%",
-        description: "Торговый сигнал"
+        description: "Торговый сигнал",
+        chance: 25
     },
     {
         id: "training",
         icon: "🎓",
         name: "ОБУЧЕНИЕ",
-        description: "Полный доступ"
+        description: "Полный доступ",
+        chance: 60
     }
 ];
 
@@ -63,15 +68,21 @@ const claimButton = document.getElementById("claimButton");
 let isSpinning = false;
 let currentRotation = 0;
 
-function showAlert(text) {
-    if (tg && tg.showAlert) {
-        tg.showAlert(text);
-    } else {
-        alert(text);
-    }
+const LAST_SPIN_KEY = "crypto_roulette_last_spin";
+
+const DAY = 24 * 60 * 60 * 1000;
+
+function showScreen(screen) {
+    document.querySelectorAll(".screen").forEach(function(item) {
+        item.classList.remove("active");
+    });
+
+    screen.classList.add("active");
+
+    window.scrollTo(0, 0);
 }
 
-function haptic(type = "light") {
+function haptic(type) {
     if (!tg || !tg.HapticFeedback) {
         return;
     }
@@ -85,26 +96,73 @@ function haptic(type = "light") {
     } catch (e) {}
 }
 
-function showScreen(screen) {
-    document.querySelectorAll(".screen").forEach(function(item) {
-        item.classList.remove("active");
-    });
+function getLastSpinTime() {
+    const value = localStorage.getItem(LAST_SPIN_KEY);
 
-    if (screen) {
-        screen.classList.add("active");
+    if (!value) {
+        return 0;
     }
 
-    window.scrollTo(0, 0);
+    return Number(value);
+}
+
+function canSpin() {
+    const lastSpin = getLastSpinTime();
+
+    if (!lastSpin) {
+        return true;
+    }
+
+    return Date.now() - lastSpin >= DAY;
+}
+
+function getRemainingTime() {
+    const lastSpin = getLastSpinTime();
+
+    if (!lastSpin) {
+        return 0;
+    }
+
+    const remaining =
+        DAY - (Date.now() - lastSpin);
+
+    return Math.max(0, remaining);
+}
+
+function formatRemainingTime() {
+    const remaining = getRemainingTime();
+
+    const hours =
+        Math.floor(remaining / 3600000);
+
+    const minutes =
+        Math.floor(
+            (remaining % 3600000) / 60000
+        );
+
+    return hours + " ч. " + minutes + " мин.";
+}
+
+function getRandomPrize() {
+
+    const random =
+        Math.random() * 100;
+
+    let total = 0;
+
+    for (const prize of prizes) {
+
+        total += prize.chance;
+
+        if (random < total) {
+            return prize;
+        }
+    }
+
+    return prizes[prizes.length - 1];
 }
 
 function createWheelLabels() {
-    if (!wheel) {
-        return;
-    }
-
-    wheel.querySelectorAll(".wheel-label").forEach(function(item) {
-        item.remove();
-    });
 
     const labels = [
         ["one", "🏆<br>$1,000"],
@@ -115,19 +173,21 @@ function createWheelLabels() {
     ];
 
     labels.forEach(function(item) {
-        const label = document.createElement("div");
 
-        label.className = "wheel-label " + item[0];
-        label.innerHTML = item[1];
+        const label =
+            document.createElement("div");
+
+        label.className =
+            "wheel-label " + item[0];
+
+        label.innerHTML =
+            item[1];
 
         wheel.appendChild(label);
     });
 }
 
 function startProgress() {
-    if (!progressBar) {
-        return;
-    }
 
     progressBar.style.transition = "none";
     progressBar.style.width = "0%";
@@ -135,28 +195,28 @@ function startProgress() {
     void progressBar.offsetWidth;
 
     requestAnimationFrame(function() {
-        progressBar.style.transition = "width 5.5s linear";
-        progressBar.style.width = "100%";
+
+        progressBar.style.transition =
+            "width 5.5s linear";
+
+        progressBar.style.width =
+            "100%";
     });
 }
 
 function animateWheel(prize) {
-    if (!wheel) {
-        return;
-    }
 
-    const prizeIndex = prizes.findIndex(function(item) {
-        return item.id === prize.id;
-    });
+    const prizeIndex =
+        prizes.findIndex(function(item) {
+            return item.id === prize.id;
+        });
 
-    if (prizeIndex === -1) {
-        return;
-    }
-
-    const sector = 360 / prizes.length;
+    const sector =
+        360 / prizes.length;
 
     const sectorCenter =
-        prizeIndex * sector + sector / 2;
+        prizeIndex * sector +
+        sector / 2;
 
     const targetAngle =
         360 - sectorCenter;
@@ -182,6 +242,7 @@ function animateWheel(prize) {
     void wheel.offsetWidth;
 
     requestAnimationFrame(function() {
+
         requestAnimationFrame(function() {
 
             wheel.style.transition =
@@ -192,31 +253,44 @@ function animateWheel(prize) {
                 newRotation +
                 "deg)";
 
-            currentRotation = newRotation;
+            currentRotation =
+                newRotation;
         });
     });
 }
 
-async function spinRoulette() {
+function showResult(prize) {
+
+    isSpinning = false;
+
+    resultIcon.textContent =
+        prize.icon;
+
+    resultName.textContent =
+        prize.name;
+
+    resultDescription.textContent =
+        prize.description;
+
+    haptic("success");
+
+    showScreen(resultScreen);
+}
+
+function spinRoulette() {
 
     if (isSpinning) {
         return;
     }
 
-    if (!tg) {
-        showAlert(
-            "Открой рулетку внутри Telegram."
-        );
-        return;
-    }
+    if (!canSpin()) {
 
-    const user =
-        tg.initDataUnsafe?.user;
-
-    if (!user || !user.id) {
         showAlert(
-            "Не удалось определить пользователя Telegram."
+            "⏳ Ты уже крутил рулетку.\n\n" +
+            "Следующая прокрутка через " +
+            formatRemainingTime() + "."
         );
+
         return;
     }
 
@@ -224,140 +298,39 @@ async function spinRoulette() {
 
     spinButton.disabled = true;
 
+    localStorage.setItem(
+        LAST_SPIN_KEY,
+        Date.now().toString()
+    );
+
     haptic("light");
 
     showScreen(rouletteScreen);
 
     spinStatus.textContent =
-        "ПРОВЕРЯЕМ ПРОКРУТКУ...";
+        "РУЛЕТКА КРУТИТСЯ...";
 
-    try {
+    startProgress();
 
-        const response = await fetch("/spin", {
-            method: "POST",
+    const prize =
+        getRandomPrize();
 
-            headers: {
-                "Content-Type": "application/json"
-            },
+    animateWheel(prize);
 
-            body: JSON.stringify({
-                user_id: user.id,
-                username: user.username || "",
-                first_name: user.first_name || "",
-                init_data: tg.initData || ""
-            })
-        });
+    setTimeout(function() {
 
-        let data;
+        showResult(prize);
 
-        try {
-            data = await response.json();
-        } catch (e) {
-            throw new Error(
-                "Сервер вернул неправильный ответ."
-            );
-        }
-
-        if (!response.ok || !data.ok) {
-
-            isSpinning = false;
-
-            spinButton.disabled = false;
-
-            showScreen(homeScreen);
-
-            if (data.seconds_left) {
-
-                const hours =
-                    Math.floor(
-                        data.seconds_left / 3600
-                    );
-
-                const minutes =
-                    Math.floor(
-                        (data.seconds_left % 3600) / 60
-                    );
-
-                showAlert(
-                    "⏳ Следующая прокрутка через " +
-                    hours +
-                    " ч. " +
-                    minutes +
-                    " мин."
-                );
-
-            } else {
-
-                showAlert(
-                    data.error ||
-                    "Прокрутка недоступна."
-                );
-            }
-
-            return;
-        }
-
-        if (!data.prize) {
-
-            throw new Error(
-                "Сервер не вернул награду."
-            );
-        }
-
-        const prize = data.prize;
-
-        spinStatus.textContent =
-            "РУЛЕТКА КРУТИТСЯ...";
-
-        startProgress();
-
-        animateWheel(prize);
-
-        setTimeout(function() {
-            showResult(prize);
-        }, 5700);
-
-    } catch (error) {
-
-        console.error(
-            "CRYPTO ROULETTE SPIN ERROR:",
-            error
-        );
-
-        isSpinning = false;
-
-        spinButton.disabled = false;
-
-        showScreen(homeScreen);
-
-        showAlert(
-            "❌ Ошибка соединения с сервером."
-        );
-    }
+    }, 5700);
 }
 
-function showResult(prize) {
+function showAlert(text) {
 
-    isSpinning = false;
-
-    if (resultIcon) {
-        resultIcon.textContent =
-            prize.icon;
+    if (tg && tg.showAlert) {
+        tg.showAlert(text);
+    } else {
+        alert(text);
     }
-
-    if (resultName) {
-        resultName.textContent =
-            prize.name;
-    }
-
-    if (resultDescription) {
-        resultDescription.textContent =
-            prize.description;
-    }
-
-    haptic("success");
-
-    showScreen(resultScreen);
 }
 
 function claimPrize() {
@@ -378,42 +351,28 @@ function claimPrize() {
     }
 }
 
-if (spinButton) {
+spinButton.addEventListener(
+    "click",
+    spinRoulette
+);
 
-    spinButton.addEventListener(
-        "click",
-        spinRoulette
-    );
-}
+backButton.addEventListener(
+    "click",
+    function() {
 
-if (backButton) {
-
-    backButton.addEventListener(
-        "click",
-        function() {
-
-            if (isSpinning) {
-                return;
-            }
-
-            showScreen(homeScreen);
-
+        if (isSpinning) {
+            return;
         }
-    );
-}
 
-if (claimButton) {
+        showScreen(homeScreen);
+    }
+);
 
-    claimButton.addEventListener(
-        "click",
-        claimPrize
-    );
-}
+claimButton.addEventListener(
+    "click",
+    claimPrize
+);
 
 createWheelLabels();
 
 showScreen(homeScreen);
-
-console.log(
-    "🎰 CRYPTO ROULETTE READY"
-);
