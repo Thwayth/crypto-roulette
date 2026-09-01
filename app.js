@@ -422,9 +422,22 @@ claimButton.addEventListener(
     "click",
     function(event) {
         event.preventDefault();
-        claimPrize();
+        function claimPrize() {
+    const username = "Andrey_AItrade";
+    const message = "СИГНАЛ 300% ЗАБИРАЮ";
+
+    const url =
+        "https://t.me/" +
+        username +
+        "?text=" +
+        encodeURIComponent(message);
+
+    if (tg && tg.openTelegramLink) {
+        tg.openTelegramLink(url);
+    } else {
+        window.location.href = url;
     }
-);
+}
 
 createWheelLabels();
 
