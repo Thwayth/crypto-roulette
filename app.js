@@ -109,7 +109,14 @@ function getLastSpin() {
         return 0;
     }
 
-    return Number(value);
+    const timestamp = Number(value);
+
+    if (Number.isNaN(timestamp)) {
+        localStorage.removeItem(LAST_SPIN_KEY);
+        return 0;
+    }
+
+    return timestamp;
 }
 
 function canSpin() {
@@ -136,13 +143,9 @@ function getRemainingTime() {
 }
 
 function formatRemainingTime(milliseconds) {
-    const totalSeconds = Math.ceil(
-        milliseconds / 1000
-    );
+    const totalSeconds = Math.ceil(milliseconds / 1000);
 
-    const hours = Math.floor(
-        totalSeconds / 3600
-    );
+    const hours = Math.floor(totalSeconds / 3600);
 
     const minutes = Math.floor(
         (totalSeconds % 3600) / 60
@@ -173,7 +176,7 @@ function getRandomPrize() {
     }
 
     return prizes.find(function(prize) {
-        return prize.id === "signal";
+        return prize.chance > 0;
     });
 }
 
@@ -196,24 +199,27 @@ function createWheelLabels() {
         label.className =
             "wheel-label " + item[0];
 
-        let html =
-            '<span class="label-icon">' +
-            item[1] +
-            "</span>";
+        const icon = document.createElement("span");
+        icon.className = "label-icon";
+        icon.textContent = item[1];
 
-        html += '<span class="label-text">';
+        const text = document.createElement("span");
+        text.className = "label-text";
 
         for (let i = 2; i < item.length; i++) {
-            html += item[i];
+            text.appendChild(
+                document.createTextNode(item[i])
+            );
 
             if (i < item.length - 1) {
-                html += "<br>";
+                text.appendChild(
+                    document.createElement("br")
+                );
             }
         }
 
-        html += "</span>";
-
-        label.innerHTML = html;
+        label.appendChild(icon);
+        label.appendChild(text);
 
         wheel.appendChild(label);
     });
@@ -224,14 +230,18 @@ function updateSpinButton() {
         return;
     }
 
+    if (isSpinning) {
+        spinButton.disabled = true;
+        return;
+    }
+
     if (canSpin()) {
         spinButton.disabled = false;
 
         spinButton.innerHTML =
             "<span>◎</span> КРУТИТЬ";
     } else {
-        const remaining =
-            getRemainingTime();
+        const remaining = getRemainingTime();
 
         spinButton.disabled = true;
 
@@ -242,6 +252,10 @@ function updateSpinButton() {
 }
 
 function startProgress() {
+    if (!progressBar) {
+        return;
+    }
+
     progressBar.style.transition = "none";
     progressBar.style.width = "0%";
 
@@ -269,16 +283,11 @@ function animateWheel(prize) {
     const targetAngle =
         360 - sectorCenter;
 
-    const randomOffset =
-        (Math.random() - 0.5) *
-        sector *
-        0.25;
-
     const currentNormalized =
         ((currentRotation % 360) + 360) % 360;
 
     const desiredNormalized =
-        (targetAngle + randomOffset + 360) % 360;
+        (targetAngle + 360) % 360;
 
     const delta =
         (desiredNormalized -
@@ -301,18 +310,15 @@ function animateWheel(prize) {
     void wheel.offsetWidth;
 
     requestAnimationFrame(function() {
-        requestAnimationFrame(function() {
-            wheel.style.transition =
-                "transform 5.5s cubic-bezier(0.12, 0.72, 0.18, 1)";
+        wheel.style.transition =
+            "transform 5.5s cubic-bezier(0.12, 0.72, 0.18, 1)";
 
-            wheel.style.transform =
-                "rotate(" +
-                newRotation +
-                "deg)";
+        wheel.style.transform =
+            "rotate(" +
+            newRotation +
+            "deg)";
 
-            currentRotation =
-                newRotation;
-        });
+        currentRotation = newRotation;
     });
 }
 
@@ -322,10 +328,9 @@ function startSpin() {
     }
 
     if (!canSpin()) {
-        updateSpinButton();
+        const remaining = getRemainingTime();
 
-        const remaining =
-            getRemainingTime();
+        updateSpinButton();
 
         const message =
             "Следующая прокрутка будет доступна через " +
@@ -353,12 +358,28 @@ function startSpin() {
 
     showScreen(rouletteScreen);
 
-    spinStatus.textContent =
-        "РУЛЕТКА КРУТИТСЯ...";
+    if (spinStatus) {
+        spinStatus.textContent =
+            "РУЛЕТКА КРУТИТСЯ...";
+    }
 
     startProgress();
 
     const prize = getRandomPrize();
+
+    if (!prize) {
+        isSpinning = false;
+
+        if (tg && tg.showAlert) {
+            tg.showAlert("Ошибка определения приза.");
+        } else {
+            alert("Ошибка определения приза.");
+        }
+
+        updateSpinButton();
+
+        return;
+    }
 
     animateWheel(prize);
 
@@ -385,46 +406,10 @@ function showResult(prize) {
 }
 
 function claimPrize() {
-    const url =
-        "https://t.me/" +
-        CLAIM_USERNAME;
+    const username = CLAIM_USERNAME;
 
-    if (tg && tg.openTelegramLink) {
-        tg.openTelegramLink(url);
-    } else {
-        window.location.href = url;
-    }
-}
-
-spinButton.addEventListener(
-    "click",
-    function(event) {
-        event.preventDefault();
-        startSpin();
-    }
-);
-
-backButton.addEventListener(
-    "click",
-    function(event) {
-        event.preventDefault();
-
-        if (isSpinning) {
-            return;
-        }
-
-        showScreen(homeScreen);
-        updateSpinButton();
-    }
-);
-
-claimButton.addEventListener(
-    "click",
-    function(event) {
-        event.preventDefault();
-        function claimPrize() {
-    const username = "Andrey_AItrade";
-    const message = "СИГНАЛ 300% ЗАБИРАЮ";
+    const message =
+        "СИГНАЛ 300% ЗАБИРАЮ";
 
     const url =
         "https://t.me/" +
@@ -437,6 +422,42 @@ claimButton.addEventListener(
     } else {
         window.location.href = url;
     }
+}
+
+if (spinButton) {
+    spinButton.addEventListener(
+        "click",
+        function(event) {
+            event.preventDefault();
+            startSpin();
+        }
+    );
+}
+
+if (backButton) {
+    backButton.addEventListener(
+        "click",
+        function(event) {
+            event.preventDefault();
+
+            if (isSpinning) {
+                return;
+            }
+
+            showScreen(homeScreen);
+            updateSpinButton();
+        }
+    );
+}
+
+if (claimButton) {
+    claimButton.addEventListener(
+        "click",
+        function(event) {
+            event.preventDefault();
+            claimPrize();
+        }
+    );
 }
 
 createWheelLabels();
