@@ -12,6 +12,7 @@ if (tg) {
     } catch (e) {}
 }
 
+const CLAIM_USERNAME = "Andrey_AItrade";
 
 const prizes = [
     {
@@ -19,38 +20,37 @@ const prizes = [
         icon: "🏆",
         name: "$1,000",
         description: "Главный приз",
-        chance: 0.0001
+        chance: 0
     },
     {
         id: "vip",
         icon: "💎",
         name: "VIP КАНАЛ",
         description: "Доступ в VIP канал",
-        chance: 10
+        chance: 0
     },
     {
         id: "marathon",
         icon: "🔥",
         name: "МАРАФОН",
         description: "Торговый марафон",
-        chance: 15
+        chance: 0
     },
     {
         id: "signal",
         icon: "📈",
         name: "СИГНАЛ НА 300%",
         description: "Торговый сигнал",
-        chance: 24.9999
+        chance: 100
     },
     {
         id: "training",
         icon: "🎓",
         name: "ЛИЧНОЕ ОБУЧЕНИЕ",
         description: "Личное обучение",
-        chance: 50
+        chance: 0
     }
 ];
-
 
 const homeScreen = document.getElementById("homeScreen");
 const rouletteScreen = document.getElementById("rouletteScreen");
@@ -69,15 +69,12 @@ const resultDescription = document.getElementById("resultDescription");
 
 const claimButton = document.getElementById("claimButton");
 
-
 let isSpinning = false;
 let currentRotation = 0;
 
 const SPIN_TIME = 5500;
 const DAY = 24 * 60 * 60 * 1000;
-
 const LAST_SPIN_KEY = "crypto_roulette_last_spin";
-
 
 function haptic(type) {
     if (!tg || !tg.HapticFeedback) {
@@ -93,7 +90,6 @@ function haptic(type) {
     } catch (e) {}
 }
 
-
 function showScreen(screen) {
     document.querySelectorAll(".screen").forEach(function(item) {
         item.classList.remove("active");
@@ -106,7 +102,6 @@ function showScreen(screen) {
     window.scrollTo(0, 0);
 }
 
-
 function getLastSpin() {
     const value = localStorage.getItem(LAST_SPIN_KEY);
 
@@ -116,7 +111,6 @@ function getLastSpin() {
 
     return Number(value);
 }
-
 
 function canSpin() {
     const lastSpin = getLastSpin();
@@ -128,7 +122,6 @@ function canSpin() {
     return Date.now() - lastSpin >= DAY;
 }
 
-
 function getRemainingTime() {
     const lastSpin = getLastSpin();
 
@@ -136,17 +129,25 @@ function getRemainingTime() {
         return 0;
     }
 
-    const remaining = DAY - (Date.now() - lastSpin);
-
-    return Math.max(0, remaining);
+    return Math.max(
+        0,
+        DAY - (Date.now() - lastSpin)
+    );
 }
 
-
 function formatRemainingTime(milliseconds) {
-    const totalSeconds = Math.ceil(milliseconds / 1000);
+    const totalSeconds = Math.ceil(
+        milliseconds / 1000
+    );
 
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const hours = Math.floor(
+        totalSeconds / 3600
+    );
+
+    const minutes = Math.floor(
+        (totalSeconds % 3600) / 60
+    );
+
     const seconds = totalSeconds % 60;
 
     return (
@@ -157,7 +158,6 @@ function formatRemainingTime(milliseconds) {
         String(seconds).padStart(2, "0")
     );
 }
-
 
 function getRandomPrize() {
     const random = Math.random() * 100;
@@ -172,9 +172,10 @@ function getRandomPrize() {
         }
     }
 
-    return prizes[prizes.length - 1];
+    return prizes.find(function(prize) {
+        return prize.id === "signal";
+    });
 }
-
 
 function createWheelLabels() {
     const labels = [
@@ -192,9 +193,15 @@ function createWheelLabels() {
     labels.forEach(function(item) {
         const label = document.createElement("div");
 
-        label.className = "wheel-label " + item[0];
+        label.className =
+            "wheel-label " + item[0];
 
-        let html = item[1] + "<br>";
+        let html =
+            '<span class="label-icon">' +
+            item[1] +
+            "</span>";
+
+        html += '<span class="label-text">';
 
         for (let i = 2; i < item.length; i++) {
             html += item[i];
@@ -204,12 +211,13 @@ function createWheelLabels() {
             }
         }
 
+        html += "</span>";
+
         label.innerHTML = html;
 
         wheel.appendChild(label);
     });
 }
-
 
 function updateSpinButton() {
     if (!spinButton) {
@@ -218,9 +226,12 @@ function updateSpinButton() {
 
     if (canSpin()) {
         spinButton.disabled = false;
-        spinButton.innerHTML = "<span>◎</span> КРУТИТЬ";
+
+        spinButton.innerHTML =
+            "<span>◎</span> КРУТИТЬ";
     } else {
-        const remaining = getRemainingTime();
+        const remaining =
+            getRemainingTime();
 
         spinButton.disabled = true;
 
@@ -230,7 +241,6 @@ function updateSpinButton() {
     }
 }
 
-
 function startProgress() {
     progressBar.style.transition = "none";
     progressBar.style.width = "0%";
@@ -238,11 +248,12 @@ function startProgress() {
     void progressBar.offsetWidth;
 
     requestAnimationFrame(function() {
-        progressBar.style.transition = "width 5.5s linear";
+        progressBar.style.transition =
+            "width 5.5s linear";
+
         progressBar.style.width = "100%";
     });
 }
-
 
 function animateWheel(prize) {
     const prizeIndex = prizes.findIndex(function(item) {
@@ -252,38 +263,58 @@ function animateWheel(prize) {
     const sector = 360 / prizes.length;
 
     const sectorCenter =
-        prizeIndex * sector + sector / 2;
+        prizeIndex * sector +
+        sector / 2;
 
     const targetAngle =
         360 - sectorCenter;
 
     const randomOffset =
-        (Math.random() - 0.5) * sector * 0.35;
+        (Math.random() - 0.5) *
+        sector *
+        0.25;
+
+    const currentNormalized =
+        ((currentRotation % 360) + 360) % 360;
+
+    const desiredNormalized =
+        (targetAngle + randomOffset + 360) % 360;
+
+    const delta =
+        (desiredNormalized -
+            currentNormalized +
+            360) %
+        360;
 
     const newRotation =
         currentRotation +
         360 * 7 +
-        targetAngle +
-        randomOffset;
+        delta;
 
     wheel.style.transition = "none";
 
     wheel.style.transform =
-        "rotate(" + currentRotation + "deg)";
+        "rotate(" +
+        currentRotation +
+        "deg)";
 
     void wheel.offsetWidth;
 
     requestAnimationFrame(function() {
-        wheel.style.transition =
-            "transform 5.5s cubic-bezier(0.12, 0.72, 0.18, 1)";
+        requestAnimationFrame(function() {
+            wheel.style.transition =
+                "transform 5.5s cubic-bezier(0.12, 0.72, 0.18, 1)";
 
-        wheel.style.transform =
-            "rotate(" + newRotation + "deg)";
+            wheel.style.transform =
+                "rotate(" +
+                newRotation +
+                "deg)";
 
-        currentRotation = newRotation;
+            currentRotation =
+                newRotation;
+        });
     });
 }
-
 
 function startSpin() {
     if (isSpinning) {
@@ -293,7 +324,8 @@ function startSpin() {
     if (!canSpin()) {
         updateSpinButton();
 
-        const remaining = getRemainingTime();
+        const remaining =
+            getRemainingTime();
 
         const message =
             "Следующая прокрутка будет доступна через " +
@@ -335,24 +367,27 @@ function startSpin() {
     }, SPIN_TIME + 200);
 }
 
-
 function showResult(prize) {
     isSpinning = false;
 
-    resultIcon.textContent = prize.icon;
-    resultName.textContent = prize.name;
-    resultDescription.textContent = prize.description;
+    resultIcon.textContent =
+        prize.icon;
+
+    resultName.textContent =
+        prize.name;
+
+    resultDescription.textContent =
+        prize.description;
 
     haptic("success");
 
     showScreen(resultScreen);
 }
 
-
 function claimPrize() {
-    const username = "vitalikadminn";
-
-    const url = "https://t.me/" + username;
+    const url =
+        "https://t.me/" +
+        CLAIM_USERNAME;
 
     if (tg && tg.openTelegramLink) {
         tg.openTelegramLink(url);
@@ -361,30 +396,35 @@ function claimPrize() {
     }
 }
 
-
-spinButton.addEventListener("click", function(event) {
-    event.preventDefault();
-    startSpin();
-});
-
-
-backButton.addEventListener("click", function(event) {
-    event.preventDefault();
-
-    if (isSpinning) {
-        return;
+spinButton.addEventListener(
+    "click",
+    function(event) {
+        event.preventDefault();
+        startSpin();
     }
+);
 
-    showScreen(homeScreen);
-    updateSpinButton();
-});
+backButton.addEventListener(
+    "click",
+    function(event) {
+        event.preventDefault();
 
+        if (isSpinning) {
+            return;
+        }
 
-claimButton.addEventListener("click", function(event) {
-    event.preventDefault();
-    claimPrize();
-});
+        showScreen(homeScreen);
+        updateSpinButton();
+    }
+);
 
+claimButton.addEventListener(
+    "click",
+    function(event) {
+        event.preventDefault();
+        claimPrize();
+    }
+);
 
 createWheelLabels();
 
@@ -392,12 +432,10 @@ updateSpinButton();
 
 showScreen(homeScreen);
 
-
 setInterval(function() {
     if (!isSpinning) {
         updateSpinButton();
     }
 }, 1000);
-
 
 console.log("CRYPTO ROULETTE READY");
